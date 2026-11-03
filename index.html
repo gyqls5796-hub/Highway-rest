@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>하이웨이 레스트 (Highway Rest) - 고속도로 주행 순서 휴게소 안내</title>
+  <title>하이웨이 레스트 (Highway Rest) - 출발/도착지 기반 고속도로 휴게소 내비게이터</title>
   
   <!-- Pretendard 웹폰트 -->
   <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
@@ -16,16 +16,6 @@
         extend: {
           fontFamily: {
             sans: ['Pretendard', '-apple-system', 'BlinkMacSystemFont', 'system-ui', 'Roboto', 'sans-serif'],
-          },
-          colors: {
-            highway: {
-              50: '#eff6ff',
-              100: '#dbeafe',
-              500: '#2563eb',
-              600: '#1d4ed8',
-              700: '#1e40af',
-              900: '#1e3a8a',
-            }
           }
         }
       }
@@ -70,12 +60,12 @@
       border-radius: 1rem !important;
       padding: 0 !important;
       overflow: hidden;
-      box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.15), 0 8px 10px -6px rgb(0 0 0 / 0.1) !important;
+      box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.18), 0 8px 10px -6px rgb(0 0 0 / 0.1) !important;
       border: 1px solid #e2e8f0;
     }
     .leaflet-popup-content {
       margin: 0 !important;
-      width: 290px !important;
+      width: 295px !important;
       font-family: 'Pretendard', sans-serif;
     }
     .leaflet-popup-tip {
@@ -88,7 +78,7 @@
       width: 24px !important;
       height: 24px !important;
       font-size: 18px !important;
-      background: rgba(255, 255, 255, 0.2) !important;
+      background: rgba(255, 255, 255, 0.22) !important;
       border-radius: 9999px !important;
       display: flex !important;
       align-items: center;
@@ -96,31 +86,31 @@
       transition: background 0.2s;
     }
     .leaflet-container a.leaflet-popup-close-button:hover {
-      background: rgba(255, 255, 255, 0.35) !important;
+      background: rgba(255, 255, 255, 0.4) !important;
     }
 
     /* 마커 펄스 애니메이션 */
     @keyframes pulse-ring {
       0% {
         transform: scale(0.85);
-        opacity: 0.8;
+        opacity: 0.85;
       }
       70% {
-        transform: scale(1.65);
+        transform: scale(1.75);
         opacity: 0;
       }
       100% {
-        transform: scale(1.65);
+        transform: scale(1.75);
         opacity: 0;
       }
     }
     .marker-pulse::before {
       content: '';
       position: absolute;
-      inset: -4px;
+      inset: -5px;
       border-radius: 9999px;
       background-color: #2563eb;
-      animation: pulse-ring 1.8s cubic-bezier(0.24, 0, 0.38, 1) infinite;
+      animation: pulse-ring 1.7s cubic-bezier(0.24, 0, 0.38, 1) infinite;
       z-index: -1;
     }
   </style>
@@ -135,32 +125,32 @@
     =========================================== -->
     <aside id="sidebarPanel" class="
       fixed md:static bottom-0 left-0 right-0 z-30
-      w-full md:w-[420px] lg:w-[440px] flex-shrink-0
+      w-full md:w-[430px] lg:w-[450px] flex-shrink-0
       bg-white md:border-r border-slate-200
       flex flex-col
-      h-[56vh] md:h-full
+      h-[58vh] md:h-full
       rounded-t-3xl md:rounded-none
       shadow-[0_-10px_30px_-5px_rgba(0,0,0,0.15)] md:shadow-xl
       transition-all duration-300 ease-in-out
     ">
       
-      <!-- 모바일 전용 바텀시트 핸들바 및 시트 높이 조절 버튼 -->
-      <div id="mobileSheetHandle" class="md:hidden flex flex-col items-center pt-2.5 pb-1 px-4 bg-white rounded-t-3xl cursor-pointer border-b border-slate-100" onclick="cycleMobileSheetState()">
+      <!-- 모바일 전용 바텀시트 핸들바 -->
+      <div id="mobileSheetHandle" class="md:hidden flex flex-col items-center pt-2.5 pb-1.5 px-4 bg-white rounded-t-3xl cursor-pointer border-b border-slate-100" onclick="cycleMobileSheetState()">
         <div class="w-12 h-1.5 bg-slate-300 rounded-full mb-1.5"></div>
-        <div class="w-full flex items-center justify-between text-xs text-slate-500 font-medium pb-1">
+        <div class="w-full flex items-center justify-between text-xs text-slate-500 font-medium">
           <span class="flex items-center gap-1 text-blue-600 font-semibold">
             <i data-lucide="navigation" class="w-3.5 h-3.5"></i>
             주행 순서 휴게소 타임라인
           </span>
           <span id="mobileSheetStateLabel" class="flex items-center gap-1 bg-slate-100 px-2 py-0.5 rounded-full text-slate-600">
-            크기 조절 <i data-lucide="chevrons-up-down" class="w-3 h-3"></i>
+            시트 크기 조절 <i data-lucide="chevrons-up-down" class="w-3 h-3"></i>
           </span>
         </div>
       </div>
 
-      <!-- 상단 헤더 & 컨트롤 영역 -->
+      <!-- 상단 헤더 & 출발/도착지 직접 입력 영역 -->
       <div class="p-4 pb-3 bg-white border-b border-slate-200 flex-shrink-0">
-        <!-- 타이틀 로고 & 검색 토글 -->
+        <!-- 타이틀 로고 -->
         <div class="flex items-center justify-between mb-3">
           <div class="flex items-center gap-2.5">
             <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-700 flex items-center justify-center text-white shadow-sm shadow-blue-500/30">
@@ -169,36 +159,90 @@
             <div>
               <div class="flex items-center gap-1.5">
                 <h1 class="font-bold text-base text-slate-900 tracking-tight leading-none">고속도로 휴게소 내비</h1>
-                <span class="text-[10px] font-bold uppercase px-1.5 py-0.5 bg-blue-50 text-blue-700 rounded border border-blue-200">LIVE 코스</span>
+                <span class="text-[10px] font-bold uppercase px-1.5 py-0.5 bg-blue-50 text-blue-700 rounded border border-blue-200">실시간 경로탐색</span>
               </div>
-              <p class="text-xs text-slate-500 mt-1">주행 방향에 위치한 휴게소를 순서대로 안내합니다</p>
+              <p class="text-xs text-slate-500 mt-1">출발지와 도착지를 입력하면 경로 상 휴게소를 순서대로 안내합니다</p>
             </div>
           </div>
-          <!-- 방향 반전 퀵 버튼 (상행 <-> 하행) -->
-          <button id="swapDirectionBtn" onclick="quickSwapDirection()" title="상행/하행 반대 방향 전환" class="p-2 rounded-xl bg-slate-100 hover:bg-blue-50 text-slate-600 hover:text-blue-600 transition-colors border border-slate-200/80 flex items-center gap-1 text-xs font-semibold">
-            <i data-lucide="arrow-up-down" class="w-4 h-4"></i>
-            <span class="hidden sm:inline">반대 방향</span>
-          </button>
         </div>
 
-        <!-- 경로 선택 셀렉트 박스 -->
-        <div class="relative mb-3">
-          <label for="routeSelect" class="sr-only">고속도로 노선 및 방향 선택</label>
-          <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-blue-600">
-            <i data-lucide="map-pin" class="w-4 h-4"></i>
+        <!-- 출발지 / 도착지 직접 입력 폼 -->
+        <form onsubmit="handleRouteSearchSubmit(event)" class="bg-slate-50 p-2.5 rounded-2xl border border-slate-200/90 mb-2.5">
+          <div class="flex items-center gap-2">
+            <!-- 좌측 출발/도착 입력칸 -->
+            <div class="flex-1 space-y-1.5">
+              <!-- 출발지 입력 -->
+              <div class="relative flex items-center">
+                <span class="w-11 text-[11px] font-extrabold text-blue-600 flex items-center gap-1 pl-1.5">
+                  <span class="w-2 h-2 rounded-full bg-blue-600"></span>출발
+                </span>
+                <input
+                  id="startInput"
+                  type="text"
+                  value="부산"
+                  placeholder="출발지 입력 (예: 부산, 창원, 대전, 해운대)"
+                  class="flex-1 bg-white px-2.5 py-1.5 rounded-lg border border-slate-200 text-xs font-bold text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  required
+                />
+              </div>
+
+              <!-- 도착지 입력 -->
+              <div class="relative flex items-center">
+                <span class="w-11 text-[11px] font-extrabold text-rose-600 flex items-center gap-1 pl-1.5">
+                  <span class="w-2 h-2 rounded-full bg-rose-600"></span>도착
+                </span>
+                <input
+                  id="endInput"
+                  type="text"
+                  value="서울"
+                  placeholder="도착지 입력 (예: 서울, 강남역, 강릉, 광주)"
+                  class="flex-1 bg-white px-2.5 py-1.5 rounded-lg border border-slate-200 text-xs font-bold text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  required
+                />
+              </div>
+            </div>
+
+            <!-- 스왑 버튼 & 경로 탐색 버튼 -->
+            <div class="flex flex-col gap-1.5">
+              <button
+                type="button"
+                onclick="swapStartEndInputs()"
+                title="출발지와 도착지 바꾸기"
+                class="p-2 bg-white hover:bg-slate-100 text-slate-600 rounded-xl border border-slate-200 transition-colors flex items-center justify-center shadow-sm"
+              >
+                <i data-lucide="arrow-up-down" class="w-4 h-4"></i>
+              </button>
+              <button
+                type="submit"
+                id="searchRouteBtn"
+                class="px-3 py-2 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white rounded-xl text-xs font-extrabold shadow-sm shadow-blue-500/20 transition-all flex items-center justify-center gap-1 whitespace-nowrap"
+              >
+                <i data-lucide="navigation" class="w-3.5 h-3.5"></i>
+                <span>경로 탐색</span>
+              </button>
+            </div>
           </div>
-          <select id="routeSelect" onchange="handleRouteChange(this.value)" class="w-full pl-9 pr-9 py-2.5 bg-slate-50 hover:bg-slate-100/80 focus:bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all appearance-none cursor-pointer">
-            <option value="gyeongbu-up">경부고속도로 상행 (부산 → 서울)</option>
-            <option value="gyeongbu-down">경부고속도로 하행 (서울 → 부산)</option>
-            <option value="yeongdong-east">영동고속도로 강릉방향 (인천 → 강릉)</option>
-          </select>
-          <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-slate-400">
-            <i data-lucide="chevron-down" class="w-4 h-4"></i>
+
+          <!-- 빠른 추천 구간 프리셋 버튼 -->
+          <div class="flex items-center gap-1.5 mt-2 pt-2 border-t border-slate-200/70 overflow-x-auto no-scrollbar">
+            <span class="text-[10px] font-bold text-slate-400 flex-shrink-0">추천구간:</span>
+            <button type="button" onclick="applyPresetRoute('부산', '서울')" class="flex-shrink-0 px-2 py-0.5 bg-white hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 border border-slate-200 rounded-md text-[11px] font-semibold text-slate-600 transition-colors">부산 → 서울</button>
+            <button type="button" onclick="applyPresetRoute('서울', '부산')" class="flex-shrink-0 px-2 py-0.5 bg-white hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 border border-slate-200 rounded-md text-[11px] font-semibold text-slate-600 transition-colors">서울 → 부산</button>
+            <button type="button" onclick="applyPresetRoute('창원', '서울')" class="flex-shrink-0 px-2 py-0.5 bg-white hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 border border-slate-200 rounded-md text-[11px] font-semibold text-slate-600 transition-colors">창원 → 서울</button>
+            <button type="button" onclick="applyPresetRoute('인천', '강릉')" class="flex-shrink-0 px-2 py-0.5 bg-white hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 border border-slate-200 rounded-md text-[11px] font-semibold text-slate-600 transition-colors">인천 → 강릉</button>
+            <button type="button" onclick="applyPresetRoute('서울', '광주')" class="flex-shrink-0 px-2 py-0.5 bg-white hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 border border-slate-200 rounded-md text-[11px] font-semibold text-slate-600 transition-colors">서울 → 광주</button>
+            <button type="button" onclick="applyPresetRoute('대구', '서울')" class="flex-shrink-0 px-2 py-0.5 bg-white hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 border border-slate-200 rounded-md text-[11px] font-semibold text-slate-600 transition-colors">대구 → 서울</button>
           </div>
+        </form>
+
+        <!-- 상태 알림 토스트 (라우팅 진행 중 또는 안내 메시지) -->
+        <div id="routeStatusNotice" class="hidden mb-2.5 px-3 py-1.5 rounded-lg bg-blue-50 border border-blue-200 text-blue-700 text-xs font-semibold flex items-center gap-2">
+          <i data-lucide="loader-2" class="w-3.5 h-3.5 animate-spin"></i>
+          <span id="routeStatusText">실제 고속도로 주행 경로를 탐색하고 있습니다...</span>
         </div>
 
         <!-- 휴게소명 / 대표메뉴 빠른 검색 바 -->
-        <div class="relative mb-3">
+        <div class="relative mb-2.5">
           <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
             <i data-lucide="search" class="w-3.5 h-3.5"></i>
           </div>
@@ -206,7 +250,7 @@
             id="searchInput"
             type="text"
             oninput="handleSearchInput(this.value)"
-            placeholder="휴게소 이름 또는 먹거리 검색 (예: 호두과자, 국밥, 안성)"
+            placeholder="경로 내 휴게소 이름 또는 먹거리 필터 (예: 호두과자, 국밥, 안성)"
             class="w-full pl-8 pr-8 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-700 placeholder-slate-400 focus:outline-none focus:bg-white focus:ring-2 focus:ring-blue-500 transition-all"
           />
           <button id="clearSearchBtn" onclick="clearSearch()" class="hidden absolute inset-y-0 right-0 pr-2.5 flex items-center text-slate-400 hover:text-slate-600">
@@ -244,21 +288,27 @@
       <!-- Leaflet 지도 캔버스 -->
       <div id="map" class="w-full h-full z-10"></div>
 
-      <!-- 상단 플로팅 배지: 현재 선택된 노선 및 방향 표시 -->
+      <!-- 상단 플로팅 배지: 현재 탐색된 출발지 → 도착지 표시 -->
       <div class="absolute top-3 left-3 right-16 md:right-auto z-20 pointer-events-none flex items-center gap-2">
         <div class="pointer-events-auto bg-white/95 backdrop-blur-md px-3.5 py-2 rounded-2xl shadow-lg border border-slate-200/80 flex items-center gap-2.5">
           <span id="floatingHighwaySign" class="px-2 py-0.5 rounded-md bg-blue-600 text-white font-extrabold text-xs tracking-tight shadow-sm">
-            경부선 1
+            고속도로 경로
           </span>
           <div class="text-xs">
-            <p id="floatingRouteTitle" class="font-bold text-slate-800 leading-none">부산 → 서울 (상행선 전용)</p>
-            <p id="floatingRouteSub" class="text-[11px] text-slate-500 mt-0.5">주행 방향 휴게소만 순서대로 표시 중</p>
+            <p id="floatingRouteTitle" class="font-bold text-slate-800 leading-none">부산 → 서울</p>
+            <p id="floatingRouteSub" class="text-[11px] text-slate-500 mt-0.5">주행 경로 반경 내 휴게소 순서대로 표시 중</p>
           </div>
         </div>
       </div>
 
       <!-- 우측 상단 지도 컨트롤 버튼 모음 -->
       <div class="absolute top-3 right-3 z-20 flex flex-col gap-2">
+        <!-- 지도 타일 스타일 전환 (일반 도로 지도 / 위성 지도) -->
+        <button onclick="toggleMapTileStyle()" id="mapTileToggleBtn" class="bg-white/95 hover:bg-slate-900 hover:text-white text-slate-700 backdrop-blur-md px-3 py-2 rounded-xl shadow-lg border border-slate-200/80 flex items-center gap-1.5 text-xs font-bold transition-all group" title="일반 도로 지도 / 위성 지도 전환">
+          <i data-lucide="layers" class="w-4 h-4 text-indigo-600 group-hover:text-white transition-colors"></i>
+          <span id="mapTileToggleText" class="hidden sm:inline">위성 지도 보기</span>
+        </button>
+
         <button onclick="resetMapView()" class="bg-white/95 hover:bg-blue-600 hover:text-white text-slate-700 backdrop-blur-md px-3 py-2 rounded-xl shadow-lg border border-slate-200/80 flex items-center gap-1.5 text-xs font-bold transition-all group" title="전체 경로 한눈에 보기">
           <i data-lucide="maximize-2" class="w-4 h-4 text-blue-600 group-hover:text-white transition-colors"></i>
           <span class="hidden sm:inline">전체 경로 보기</span>
@@ -275,7 +325,7 @@
         </button>
       </div>
 
-      <!-- 모바일 전용 우측 하단 지도/목록 빠른 전환 플로팅 버튼 -->
+      <!-- 모바일 전용 지도/목록 빠른 전환 플로팅 버튼 -->
       <div class="md:hidden absolute top-16 left-3 z-20">
         <button onclick="toggleMobileMapFull()" id="mobileToggleMapBtn" class="bg-slate-900/90 text-white backdrop-blur-md px-3 py-1.5 rounded-full shadow-lg flex items-center gap-1.5 text-xs font-semibold">
           <i data-lucide="map" class="w-3.5 h-3.5 text-blue-400"></i>
@@ -294,13 +344,13 @@
      * 1. 편의시설 필터 메타데이터 정의
      */
     const FACILITY_FILTERS = [
-      { id: 'all', label: '전체', icon: 'layers', color: 'blue' },
-      { id: 'ev', label: '초급속 충전소', icon: 'zap', color: 'emerald' },
-      { id: 'exOil', label: '알뜰주유소', icon: 'fuel', color: 'amber' },
-      { id: 'famousFood', label: '대표 맛집', icon: 'utensils', color: 'rose' },
-      { id: 'nursing', label: '수유실', icon: 'baby', color: 'pink' },
-      { id: 'truckLounge', label: '화물차라운지', icon: 'truck', color: 'indigo' },
-      { id: 'pharmacy', label: '약국/샤워실', icon: 'pill', color: 'teal' }
+      { id: 'all', label: '전체', icon: 'layers' },
+      { id: 'ev', label: '초급속 충전소', icon: 'zap' },
+      { id: 'exOil', label: '알뜰주유소', icon: 'fuel' },
+      { id: 'famousFood', label: '대표 맛집', icon: 'utensils' },
+      { id: 'nursing', label: '수유실', icon: 'baby' },
+      { id: 'truckLounge', label: '화물차라운지', icon: 'truck' },
+      { id: 'pharmacy', label: '약국/샤워실', icon: 'pill' }
     ];
 
     const FACILITY_BADGE_MAP = {
@@ -313,639 +363,788 @@
     };
 
     /**
-     * 2. 고속도로 노선 및 휴게소 상세 데이터
-     * - 경부고속도로 상행 (부산 -> 서울): 실제 16개 주요 휴게소 및 좌표/누적거리/대표메뉴 반영
-     * - 경부고속도로 하행 (서울 -> 부산): 실제 하행 주요 휴게소 반영
-     * - 영동고속도로 강릉방향 (인천 -> 강릉): 실제 강릉방향 주요 휴게소 반영
+     * 2. 국내 주요 도시/거점 내장 좌표 사전 (빠른 응답 및 오프라인 폴백 지원)
      */
-    const HIGHWAY_ROUTES = {
-      'gyeongbu-up': {
-        id: 'gyeongbu-up',
-        highwayNo: '경부선 1',
-        name: '경부고속도로 상행 (부산 → 서울)',
-        shortTitle: '부산 → 서울 (상행선)',
-        startName: '부산 톨게이트 (구서IC)',
-        startCoord: [35.2478, 129.0925],
-        endName: '서울 톨게이트 (양재IC)',
-        endCoord: [37.4633, 127.0365],
-        totalDistanceKm: 396,
-        estTimeText: '약 4시간 30분',
-        themeColor: '#2563eb',
-        // 실제 경부고속도로 선형을 따라가는 상세 폴리라인 좌표 배열
-        polyline: [
-          [35.2478, 129.0925], // 부산 구서IC
-          [35.2950, 129.0850],
-          [35.3372, 129.0598], // 양산휴게소 부근
-          [35.4200, 129.0800],
-          [35.5050, 129.1200],
-          [35.6022, 129.1247], // 언양휴게소 부근
-          [35.6800, 129.1600],
-          [35.7584, 129.1887], // 경주휴게소 부근
-          [35.8250, 129.1500],
-          [35.8398, 129.0485], // 건천휴게소 부근
-          [35.8800, 128.9800],
-          [35.9102, 128.9095], // 영천휴게소 부근
-          [35.9118, 128.8286], // 평사휴게소 부근
-          [35.8950, 128.7000], // 대구 동대구JC 부근
-          [35.9200, 128.5800], // 금호JC
-          [36.0285, 128.4315], // 칠곡휴게소 부근
-          [36.1100, 128.3600], // 구미
-          [36.1400, 128.1500], // 김천JC
-          [36.1995, 127.9852], // 추풍령휴게소
-          [36.2450, 127.8200], // 황간
-          [36.2775, 127.6725], // 금강휴게소
-          [36.3082, 127.5714], // 옥천휴게소
-          [36.3600, 127.4500], // 대전 비룡JC
-          [36.4350, 127.4200], // 신탄진
-          [36.4945, 127.4305], // 죽암휴게소
-          [36.6300, 127.3600], // 청주IC
-          [36.7368, 127.2562], // 천안호두휴게소
-          [36.8200, 127.1850], // 천안JC
-          [36.9350, 127.1500], // 안성IC
-          [37.0135, 127.1292], // 안성휴게소(서울)
-          [37.1350, 127.1050], // 오산
-          [37.2355, 127.1045], // 기흥휴게소
-          [37.3318, 127.1042], // 죽전휴게소
-          [37.4050, 127.0950], // 판교JC
-          [37.4598, 127.0422], // 만남의광장
-          [37.4633, 127.0365]  // 양재IC (종점)
-        ],
-        stops: [
-          {
-            id: 'gb-up-1',
-            name: '양산휴게소 (서울방향)',
-            kmFromStart: 14,
-            lat: 35.3372,
-            lng: 129.0598,
-            signatureFood: { name: '매실간장 삼겹살구이 정식', price: '11,500원', badge: '지역특산' },
-            subFoods: ['부산어묵우동', '수제돈가스'],
-            gasPrice: { gasoline: 1635, diesel: 1485, brand: 'ex-OIL 알뜰' },
-            facilities: ['ev', 'exOil', 'nursing'],
-            rating: 4.3,
-            highlight: '부산 출발 직후 첫 휴게소 · 초급속 충전기 6기 운영',
-            status: '원활'
-          },
-          {
-            id: 'gb-up-2',
-            name: '언양휴게소 (서울방향)',
-            kmFromStart: 43,
-            lat: 35.6022,
-            lng: 129.1247,
-            signatureFood: { name: '언양식 한우불고기 비빔밥', price: '12,000원', badge: '베스트' },
-            subFoods: ['언양불고기버거', '소머리국밥'],
-            gasPrice: { gasoline: 1639, diesel: 1489, brand: 'ex-OIL 알뜰' },
-            facilities: ['ev', 'exOil', 'famousFood', 'truckLounge'],
-            rating: 4.5,
-            highlight: '울산·언양 전통 불고기 맛집과 반구대 암각화 테마 공원',
-            status: '원활'
-          },
-          {
-            id: 'gb-up-3',
-            name: '경주휴게소 (서울방향)',
-            kmFromStart: 61,
-            lat: 35.7584,
-            lng: 129.1887,
-            signatureFood: { name: '경주 한우소머리국밥 & 경주빵', price: '10,500원', badge: '명물' },
-            subFoods: ['찰보리빵', '낙지덮밥'],
-            gasPrice: { gasoline: 1642, diesel: 1490, brand: 'ex-OIL 알뜰' },
-            facilities: ['ev', 'exOil', 'nursing', 'famousFood'],
-            rating: 4.4,
-            highlight: '신라 한옥 기와지붕 테마 외관 · 갓 구운 황남경주빵 판매',
-            status: '보통'
-          },
-          {
-            id: 'gb-up-4',
-            name: '건천휴게소 (서울방향)',
-            kmFromStart: 77,
-            lat: 35.8398,
-            lng: 129.0485,
-            signatureFood: { name: '누구나 돌솥비빔밥', price: '9,500원', badge: '가성비' },
-            subFoods: ['건천버섯칼국수', '호두과자'],
-            gasPrice: { gasoline: 1630, diesel: 1479, brand: 'ex-OIL 알뜰' },
-            facilities: ['exOil', 'truckLounge'],
-            rating: 4.1,
-            highlight: '경부선 상행 알뜰주유소 최저가 수준 · 조용하고 빠른 휴식',
-            status: '원활'
-          },
-          {
-            id: 'gb-up-5',
-            name: '영천휴게소 (서울방향)',
-            kmFromStart: 92,
-            lat: 35.9102,
-            lng: 128.9095,
-            signatureFood: { name: '얼큰 대파육개장', price: '9,500원', badge: '인기' },
-            subFoods: ['제육덮밥', '영천포도주스'],
-            gasPrice: { gasoline: 1638, diesel: 1485, brand: 'ex-OIL 알뜰' },
-            facilities: ['ev', 'exOil', 'nursing'],
-            rating: 4.2,
-            highlight: '넓은 주차 공간과 쾌적한 그린테리아 식음 공간',
-            status: '원활'
-          },
-          {
-            id: 'gb-up-6',
-            name: '평사휴게소 (서울방향)',
-            kmFromStart: 103,
-            lat: 35.9118,
-            lng: 128.8286,
-            signatureFood: { name: '애플수제등심돈가스', price: '10,500원', badge: '수제명물' },
-            subFoods: ['대구따로국밥', '납작만두떡볶이'],
-            gasPrice: { gasoline: 1639, diesel: 1488, brand: 'ex-OIL 알뜰' },
-            facilities: ['ev', 'exOil', 'famousFood', 'nursing'],
-            rating: 4.4,
-            highlight: '대구 진입 전 거점 휴게소 · 사과 소스 수제 돈가스 인기',
-            status: '보통'
-          },
-          {
-            id: 'gb-up-7',
-            name: '칠곡휴게소 (서울방향)',
-            kmFromStart: 146,
-            lat: 36.0285,
-            lng: 128.4315,
-            signatureFood: { name: '칠곡 시골돼지짜글이 정식', price: '10,000원', badge: '맛집인증' },
-            subFoods: ['한의원한방국밥', '소떡소떡'],
-            gasPrice: { gasoline: 1634, diesel: 1482, brand: 'ex-OIL 알뜰' },
-            facilities: ['ev', 'exOil', 'famousFood', 'truckLounge', 'nursing'],
-            rating: 4.6,
-            highlight: '대구·구미권 대형 복합휴게소 · 화물차 라운지 및 샤워실 완비',
-            status: '보통'
-          },
-          {
-            id: 'gb-up-8',
-            name: '추풍령휴게소 (서울방향)',
-            kmFromStart: 193,
-            lat: 36.1995,
-            lng: 127.9852,
-            signatureFood: { name: '추풍령 지례흑돼지 석쇠불고기', price: '11,500원', badge: '백년가게급' },
-            subFoods: ['수제석쇠불고기버거', '추풍령산채비빔밥'],
-            gasPrice: { gasoline: 1645, diesel: 1495, brand: 'ex-OIL 알뜰' },
-            facilities: ['ev', 'exOil', 'famousFood', 'nursing', 'truckLounge'],
-            rating: 4.7,
-            highlight: '대한민국 제1호 고속도로 휴게소 기념탑 · 부산~서울 정확히 중간 지점',
-            status: '원활'
-          },
-          {
-            id: 'gb-up-9',
-            name: '금강휴게소 (상·하행 통합)',
-            kmFromStart: 229,
-            lat: 36.2775,
-            lng: 127.6725,
-            signatureFood: { name: '금강 도리뱅뱅 정식 & 어죽', price: '13,000원', badge: '전국명물' },
-            subFoods: ['올갱이국밥', '통감자구이'],
-            gasPrice: { gasoline: 1649, diesel: 1499, brand: 'SK에너지' },
-            facilities: ['ev', 'famousFood', 'nursing'],
-            rating: 4.8,
-            highlight: '이영자 추천 도리뱅뱅 맛집 · 금강 수변 절경 전망 테라스 보유',
-            status: '혼잡'
-          },
-          {
-            id: 'gb-up-10',
-            name: '옥천휴게소 (서울방향)',
-            kmFromStart: 242,
-            lat: 36.3082,
-            lng: 127.5714,
-            signatureFood: { name: '옥천 한방닭곰탕', price: '9,500원', badge: '보양식' },
-            subFoods: ['버섯돌솥비빔밥', '통옥수수구이'],
-            gasPrice: { gasoline: 1636, diesel: 1484, brand: 'ex-OIL 알뜰' },
-            facilities: ['ev', 'exOil', 'truckLounge'],
-            rating: 4.2,
-            highlight: '금강휴게소가 붐빌 때 바로 다음에서 여유롭게 쉬어가는 알짜 휴게소',
-            status: '원활'
-          },
-          {
-            id: 'gb-up-11',
-            name: '죽암휴게소 (서울방향)',
-            kmFromStart: 274,
-            lat: 36.4945,
-            lng: 127.4305,
-            signatureFood: { name: '보은 대추왕갈비탕 & 멍게비빔밥', price: '13,500원', badge: '대표맛집' },
-            subFoods: ['공주알밤빵', '우거지해장국'],
-            gasPrice: { gasoline: 1640, diesel: 1488, brand: 'ex-OIL 알뜰' },
-            facilities: ['ev', 'exOil', 'famousFood', 'nursing', 'truckLounge', 'pharmacy'],
-            rating: 4.6,
-            highlight: '대전·청주 통과 구간 대형 거점 · 반려견 놀이터 및 약국 운영',
-            status: '보통'
-          },
-          {
-            id: 'gb-up-12',
-            name: '천안호두휴게소 (서울방향)',
-            kmFromStart: 309,
-            lat: 36.7368,
-            lng: 127.2562,
-            signatureFood: { name: '원조 갓 구운 천안 명물 호두과자', price: '6,000원~', badge: '필수간식' },
-            subFoods: ['병천순대국밥', '얼큰해물짬뽕'],
-            gasPrice: { gasoline: 1639, diesel: 1487, brand: 'ex-OIL 알뜰' },
-            facilities: ['ev', 'exOil', 'famousFood', 'nursing'],
-            rating: 4.6,
-            highlight: '선물용/간식용 따끈한 천안 호두과자와 진한 병천순대국밥 성지',
-            status: '보통'
-          },
-          {
-            id: 'gb-up-13',
-            name: '안성휴게소 (서울방향)',
-            kmFromStart: 344,
-            lat: 37.0135,
-            lng: 127.1292,
-            signatureFood: { name: '안성맞춤 한우국밥 & 원조 소떡소떡', price: '11,000원', badge: '전국1위' },
-            subFoods: ['안성마늘보쌈정식', '통감자버터구이'],
-            gasPrice: { gasoline: 1644, diesel: 1492, brand: 'ex-OIL 알뜰' },
-            facilities: ['ev', 'exOil', 'famousFood', 'nursing', 'pharmacy'],
-            rating: 4.8,
-            highlight: '고속도로 휴게소 판매 1위 안성국밥 · 내과의원 및 약국 보유',
-            status: '혼잡'
-          },
-          {
-            id: 'gb-up-14',
-            name: '기흥휴게소 (서울방향)',
-            kmFromStart: 369,
-            lat: 37.2355,
-            lng: 127.1045,
-            signatureFood: { name: '향천우동 & 기흥 수제돈가스', price: '8,500원', badge: '인기' },
-            subFoods: ['가마솥비빔밥', '핫도그'],
-            gasPrice: { gasoline: 1648, diesel: 1498, brand: 'ex-OIL 알뜰' },
-            facilities: ['ev', 'exOil', 'nursing', 'pharmacy'],
-            rating: 4.3,
-            highlight: '수도권 진입 직전 대형 휴게소 · 쇼핑몰 연계 및 광역버스 환승',
-            status: '보통'
-          },
-          {
-            id: 'gb-up-15',
-            name: '죽전휴게소 (서울방향)',
-            kmFromStart: 380,
-            lat: 37.3318,
-            lng: 127.1042,
-            signatureFood: { name: '죽전 임금님 이천쌀밥 정식', price: '12,000원', badge: '명품한식' },
-            subFoods: ['수제어묵바', '아메리카노'],
-            gasPrice: { gasoline: 1659, diesel: 1510, brand: 'ex-OIL 알뜰' },
-            facilities: ['ev', 'exOil', 'famousFood', 'nursing'],
-            rating: 4.5,
-            highlight: '서울 진입 15km 전 · 갓 지은 이천 돌솥쌀밥 정식 전문',
-            status: '보통'
-          },
-          {
-            id: 'gb-up-16',
-            name: '서울만남의광장휴게소 (부산방향 겸용권)',
-            kmFromStart: 394,
-            lat: 37.4598,
-            lng: 127.0422,
-            signatureFood: { name: '말죽거리 소고기국밥', price: '10,500원', badge: '전통명물' },
-            subFoods: ['해물순두부찌개', '호두과자'],
-            gasPrice: { gasoline: 1655, diesel: 1505, brand: 'ex-OIL 알뜰' },
-            facilities: ['ev', 'exOil', 'famousFood', 'nursing', 'pharmacy'],
-            rating: 4.7,
-            highlight: '양재IC 종점 부근 · 말죽거리 소고기국밥으로 유명한 수도권 대표 거점',
-            status: '보통'
-          }
-        ]
-      },
-
-      'gyeongbu-down': {
-        id: 'gyeongbu-down',
-        highwayNo: '경부선 1',
-        name: '경부고속도로 하행 (서울 → 부산)',
-        shortTitle: '서울 → 부산 (하행선)',
-        startName: '서울 톨게이트 (양재IC)',
-        startCoord: [37.4633, 127.0365],
-        endName: '부산 톨게이트 (구서IC)',
-        endCoord: [35.2478, 129.0925],
-        totalDistanceKm: 396,
-        estTimeText: '약 4시간 35분',
-        themeColor: '#4f46e5',
-        polyline: [
-          [37.4633, 127.0365],
-          [37.4598, 127.0422],
-          [37.3318, 127.1042],
-          [37.2185, 127.1038], // 기흥(부산)
-          [37.0655, 127.1142], // 안성(부산)
-          [36.8850, 127.1632], // 입장거봉포도
-          [36.7595, 127.2435], // 천안삼거리
-          [36.5782, 127.3820], // 옥산
-          [36.4922, 127.4312], // 죽암(부산)
-          [36.3065, 127.5720], // 옥천(부산)
-          [36.2775, 127.6725], // 금강
-          [36.2002, 127.9845], // 추풍령(부산)
-          [36.0260, 128.4330], // 칠곡(부산)
-          [35.8950, 128.7000],
-          [35.7550, 129.1890], // 경주(부산)
-          [35.4810, 129.1150], // 통도사(부산)
-          [35.2478, 129.0925]
-        ],
-        stops: [
-          {
-            id: 'gb-dn-1',
-            name: '서울만남의광장휴게소 (부산방향)',
-            kmFromStart: 2,
-            lat: 37.4598,
-            lng: 127.0422,
-            signatureFood: { name: '말죽거리 한우소고기국밥', price: '10,500원', badge: '원조명물' },
-            subFoods: ['김치찌개', '생크림호두과자'],
-            gasPrice: { gasoline: 1652, diesel: 1502, brand: 'ex-OIL 알뜰' },
-            facilities: ['ev', 'exOil', 'famousFood', 'nursing', 'pharmacy'],
-            rating: 4.7,
-            highlight: '출발 직후 주유 및 든든한 아침 식사 1순위 휴게소',
-            status: '혼잡'
-          },
-          {
-            id: 'gb-dn-2',
-            name: '기흥휴게소 (부산방향)',
-            kmFromStart: 29,
-            lat: 37.2185,
-            lng: 127.1038,
-            signatureFood: { name: '기흥 수제왕돈가스 & 우동세트', price: '11,500원', badge: '인기' },
-            subFoods: ['소고기장터국밥', '소떡소떡'],
-            gasPrice: { gasoline: 1646, diesel: 1495, brand: 'ex-OIL 알뜰' },
-            facilities: ['ev', 'exOil', 'nursing', 'pharmacy'],
-            rating: 4.4,
-            highlight: '대규모 푸드코트 및 프리미엄 아울렛 연결 복합 휴게소',
-            status: '보통'
-          },
-          {
-            id: 'gb-dn-3',
-            name: '안성휴게소 (부산방향)',
-            kmFromStart: 51,
-            lat: 37.0655,
-            lng: 127.1142,
-            signatureFood: { name: '안성 한우소머리국밥 & 고구마치즈돈가스', price: '11,000원', badge: '전국명물' },
-            subFoods: ['안성소떡소떡', '맥반석오징어'],
-            gasPrice: { gasoline: 1640, diesel: 1488, brand: 'ex-OIL 알뜰' },
-            facilities: ['ev', 'exOil', 'famousFood', 'nursing', 'truckLounge', 'pharmacy'],
-            rating: 4.8,
-            highlight: '하행선 최대 인기 휴게소 · 어린이 놀이터 및 수유실 최상급 시설',
-            status: '혼잡'
-          },
-          {
-            id: 'gb-dn-4',
-            name: '망향휴게소 (부산방향)',
-            kmFromStart: 78,
-            lat: 36.8542,
-            lng: 127.1812,
-            signatureFood: { name: '망향 명품 닭개장 & 호두과자', price: '10,000원', badge: '전통맛집' },
-            subFoods: ['빠금장된장찌개', '천안호두과자'],
-            gasPrice: { gasoline: 1638, diesel: 1485, brand: 'ex-OIL 알뜰' },
-            facilities: ['ev', 'exOil', 'famousFood', 'nursing'],
-            rating: 4.6,
-            highlight: '천안 진입 구간 대표 휴게소 · 대통령상 수상 화장실 문화관',
-            status: '보통'
-          },
-          {
-            id: 'gb-dn-5',
-            name: '죽암휴게소 (부산방향)',
-            kmFromStart: 122,
-            lat: 36.4922,
-            lng: 127.4312,
-            signatureFood: { name: '죽암 왕갈비탕 & 충청도 짜글이', price: '13,000원', badge: '베스트' },
-            subFoods: ['수제어묵우동', '버터구이감자'],
-            gasPrice: { gasoline: 1636, diesel: 1484, brand: 'ex-OIL 알뜰' },
-            facilities: ['ev', 'exOil', 'famousFood', 'nursing', 'truckLounge'],
-            rating: 4.5,
-            highlight: '청주·대전 통과 구간 거점 · 화물차 수면실 및 샤워실 운영',
-            status: '원활'
-          },
-          {
-            id: 'gb-dn-6',
-            name: '금강휴게소 (상·하행 통합)',
-            kmFromStart: 167,
-            lat: 36.2775,
-            lng: 127.6725,
-            signatureFood: { name: '금강 도리뱅뱅 정식 & 민물새우매운탕', price: '13,000원', badge: '전국명물' },
-            subFoods: ['인삼갈비탕', '도토리묵사발'],
-            gasPrice: { gasoline: 1649, diesel: 1499, brand: 'SK에너지' },
-            facilities: ['ev', 'famousFood', 'nursing'],
-            rating: 4.8,
-            highlight: '금강 줄기를 내려다보며 즐기는 도리뱅뱅 정식 · 사진 명소',
-            status: '혼잡'
-          },
-          {
-            id: 'gb-dn-7',
-            name: '추풍령휴게소 (부산방향)',
-            kmFromStart: 203,
-            lat: 36.2002,
-            lng: 127.9845,
-            signatureFood: { name: '지례흑돼지 고추장불고기 정식', price: '11,500원', badge: '지역명물' },
-            subFoods: ['산채비빔밥', '호두잣과자'],
-            gasPrice: { gasoline: 1642, diesel: 1490, brand: 'ex-OIL 알뜰' },
-            facilities: ['ev', 'exOil', 'famousFood', 'nursing', 'truckLounge'],
-            rating: 4.6,
-            highlight: '백두대간 추풍령 고개 위 탁 트인 산세와 쉼터 공원',
-            status: '원활'
-          },
-          {
-            id: 'gb-dn-8',
-            name: '칠곡휴게소 (부산방향)',
-            kmFromStart: 250,
-            lat: 36.0260,
-            lng: 128.4330,
-            signatureFood: { name: '아카시아 벌꿀 돈가스 & 한우국밥', price: '10,500원', badge: '특화메뉴' },
-            subFoods: ['제육덮밥', '소떡소떡'],
-            gasPrice: { gasoline: 1632, diesel: 1480, brand: 'ex-OIL 알뜰' },
-            facilities: ['ev', 'exOil', 'famousFood', 'nursing', 'truckLounge'],
-            rating: 4.5,
-            highlight: '대구 진입 전 저렴한 유가와 넓은 주차장을 갖춘 핵심 휴게소',
-            status: '원활'
-          },
-          {
-            id: 'gb-dn-9',
-            name: '통도사휴게소 (부산방향)',
-            kmFromStart: 358,
-            lat: 35.4810,
-            lng: 129.1150,
-            signatureFood: { name: '통도사 산채비빔밥 & 언양불고기', price: '11,000원', badge: '인기' },
-            subFoods: ['부산어묵탕', '통감자'],
-            gasPrice: { gasoline: 1635, diesel: 1483, brand: 'ex-OIL 알뜰' },
-            facilities: ['ev', 'exOil', 'famousFood', 'nursing'],
-            rating: 4.6,
-            highlight: '부산 도착 35km 전 마지막 대형 휴게소 · 통도사 하이패스IC 인접',
-            status: '보통'
-          }
-        ]
-      },
-
-      'yeongdong-east': {
-        id: 'yeongdong-east',
-        highwayNo: '영동선 50',
-        name: '영동고속도로 강릉방향 (인천 → 강릉)',
-        shortTitle: '인천 → 강릉 (강릉방향)',
-        startName: '인천 서창JC',
-        startCoord: [37.4342, 126.7358],
-        endName: '강릉 톨게이트 (강릉JC)',
-        endCoord: [37.7685, 128.8540],
-        totalDistanceKm: 234,
-        estTimeText: '약 2시간 50분',
-        themeColor: '#0d9488',
-        polyline: [
-          [37.4342, 126.7358], // 인천 서창JC
-          [37.3358, 126.8615], // 안산휴게소
-          [37.2798, 127.0150], // 동수원
-          [37.2368, 127.2588], // 용인휴게소
-          [37.2248, 127.4320], // 덕평자연휴게소
-          [37.2652, 127.5960], // 여주휴게소
-          [37.2780, 127.7985], // 문막휴게소
-          [37.3620, 127.9450], // 원주
-          [37.4590, 128.1112], // 횡성휴게소
-          [37.5752, 128.4265], // 평창휴게소
-          [37.6845, 128.7052], // 대관령IC
-          [37.7582, 128.8215], // 강릉대관령휴게소
-          [37.7685, 128.8540]  // 강릉JC
-        ],
-        stops: [
-          {
-            id: 'yd-1',
-            name: '안산복합휴게소 (강릉방향)',
-            kmFromStart: 16,
-            lat: 37.3358,
-            lng: 126.8615,
-            signatureFood: { name: '해물순두부정식 & 가마솥국밥', price: '10,500원', badge: '신규오픈' },
-            subFoods: ['뉴욕핫도그', '통감자'],
-            gasPrice: { gasoline: 1648, diesel: 1498, brand: 'ex-OIL 알뜰' },
-            facilities: ['ev', 'exOil', 'nursing', 'pharmacy'],
-            rating: 4.5,
-            highlight: '최신식 상공형 복합휴게소 · 깔끔한 라운지형 식음 공간',
-            status: '보통'
-          },
-          {
-            id: 'yd-2',
-            name: '용인휴게소 (강릉방향)',
-            kmFromStart: 48,
-            lat: 37.2368,
-            lng: 127.2588,
-            signatureFood: { name: '용인 백옥쌀 한우소머리국밥', price: '11,000원', badge: '인기' },
-            subFoods: ['현미돌솥비빔밥', '수제어묵'],
-            gasPrice: { gasoline: 1639, diesel: 1488, brand: 'ex-OIL 알뜰' },
-            facilities: ['ev', 'exOil', 'nursing', 'truckLounge'],
-            rating: 4.3,
-            highlight: '영동선 초반 알뜰주유소 인기 경유지',
-            status: '원활'
-          },
-          {
-            id: 'yd-3',
-            name: '덕평자연휴게소 (양방향 통합)',
-            kmFromStart: 64,
-            lat: 37.2248,
-            lng: 127.4320,
-            signatureFood: { name: '덕평 소고기국밥', price: '10,500원', badge: '전국판매1위' },
-            subFoods: ['덕평수제돈가스', '임실치즈구이'],
-            gasPrice: { gasoline: 1655, diesel: 1505, brand: 'SK에너지' },
-            facilities: ['ev', 'famousFood', 'nursing', 'pharmacy'],
-            rating: 4.9,
-            highlight: '아울렛·생태공원·반려견 테마파크(달려라코코)를 갖춘 국내 최고 복합휴게소',
-            status: '혼잡'
-          },
-          {
-            id: 'yd-4',
-            name: '여주휴게소 (강릉방향)',
-            kmFromStart: 81,
-            lat: 37.2652,
-            lng: 127.5960,
-            signatureFood: { name: '여주 임금님쌀 가마솥비빔밥', price: '10,500원', badge: '지역명물' },
-            subFoods: ['여주통감자구이', '명품우동'],
-            gasPrice: { gasoline: 1636, diesel: 1485, brand: 'ex-OIL 알뜰' },
-            facilities: ['ev', 'exOil', 'famousFood', 'nursing', 'truckLounge'],
-            rating: 4.5,
-            highlight: '영동선 대표 대형 휴게소 · 알뜰주유소 및 대형 전기차 충전소 완비',
-            status: '보통'
-          },
-          {
-            id: 'yd-5',
-            name: '문막휴게소 (강릉방향)',
-            kmFromStart: 102,
-            lat: 37.2780,
-            lng: 127.7985,
-            signatureFood: { name: '원주 한우뽕잎국밥', price: '11,000원', badge: '특산맛집' },
-            subFoods: ['곤드레돌솥밥', '강원도감자떡'],
-            gasPrice: { gasoline: 1638, diesel: 1486, brand: 'ex-OIL 알뜰' },
-            facilities: ['ev', 'exOil', 'famousFood', 'nursing'],
-            rating: 4.4,
-            highlight: '강원도 초입 휴게소 · 별빛 화장실 및 산책 정원 유명',
-            status: '원활'
-          },
-          {
-            id: 'yd-6',
-            name: '횡성휴게소 (강릉방향)',
-            kmFromStart: 142,
-            lat: 37.4590,
-            lng: 128.1112,
-            signatureFood: { name: '횡성 한우떡더덕스테이크', price: '16,000원', badge: '이영자맛집' },
-            subFoods: ['횡성한우국밥', '안흥찐빵'],
-            gasPrice: { gasoline: 1644, diesel: 1492, brand: 'ex-OIL 알뜰' },
-            facilities: ['ev', 'exOil', 'famousFood', 'nursing'],
-            rating: 4.8,
-            highlight: '고속도로에서 맛보는 진짜 횡성한우 스테이크와 원조 안흥찐빵',
-            status: '혼잡'
-          },
-          {
-            id: 'yd-7',
-            name: '평창휴게소 (강릉방향)',
-            kmFromStart: 178,
-            lat: 37.5752,
-            lng: 128.4265,
-            signatureFood: { name: '평창 황태회관 황태해장국', price: '11,000원', badge: '강원명물' },
-            subFoods: ['메밀전병', '감자옹심이'],
-            gasPrice: { gasoline: 1645, diesel: 1494, brand: 'ex-OIL 알뜰' },
-            facilities: ['ev', 'exOil', 'famousFood', 'nursing'],
-            rating: 4.6,
-            highlight: '진부령 황태와 평창 메밀 요리를 맛볼 수 있는 고원 휴게소',
-            status: '원활'
-          },
-          {
-            id: 'yd-8',
-            name: '강릉대관령휴게소 (강릉방향)',
-            kmFromStart: 226,
-            lat: 37.7582,
-            lng: 128.8215,
-            signatureFood: { name: '초당순두부 황태짬뽕 & 감자바우', price: '10,500원', badge: '동해안명물' },
-            subFoods: ['초당옥수수커피', '오징어순대'],
-            gasPrice: { gasoline: 1640, diesel: 1489, brand: 'ex-OIL 알뜰' },
-            facilities: ['ev', 'exOil', 'famousFood', 'nursing', 'truckLounge'],
-            rating: 4.7,
-            highlight: '대관령 고개를 내려와 강릉 바다 진입 직전 만나는 마지막 휴게소',
-            status: '원활'
-          }
-        ]
-      }
+    const KOREA_PLACE_DICT = {
+      '서울': { name: '서울 (양재IC/서울역)', lat: 37.5547, lng: 126.9707 },
+      '서울역': { name: '서울역', lat: 37.5547, lng: 126.9707 },
+      '강남': { name: '서울 강남 (양재IC)', lat: 37.4633, lng: 127.0365 },
+      '강남역': { name: '서울 강남역', lat: 37.4979, lng: 127.0276 },
+      '양재': { name: '서울 양재IC', lat: 37.4633, lng: 127.0365 },
+      '부산': { name: '부산 (구서IC/부산역)', lat: 35.1796, lng: 129.0756 },
+      '부산역': { name: '부산역', lat: 35.1152, lng: 129.0422 },
+      '해운대': { name: '부산 해운대', lat: 35.1631, lng: 129.1635 },
+      '창원': { name: '창원 (창원시청/동마산IC)', lat: 35.2279, lng: 128.6818 },
+      '창원시청': { name: '창원시청', lat: 35.2279, lng: 128.6818 },
+      '마산': { name: '창원 마산', lat: 35.2155, lng: 128.5790 },
+      '진주': { name: '진주 (진주IC)', lat: 35.1650, lng: 128.1050 },
+      '울산': { name: '울산 (울산IC)', lat: 35.5384, lng: 129.3114 },
+      '대구': { name: '대구 (동대구IC)', lat: 35.8714, lng: 128.6014 },
+      '경주': { name: '경주 (경주IC)', lat: 35.8562, lng: 129.2247 },
+      '구미': { name: '구미 (구미IC)', lat: 36.1195, lng: 128.3446 },
+      '김천': { name: '김천 (김천JC)', lat: 36.1398, lng: 128.1136 },
+      '대전': { name: '대전 (대전IC)', lat: 36.3504, lng: 127.3845 },
+      '청주': { name: '청주 (청주IC)', lat: 36.6424, lng: 127.4890 },
+      '천안': { name: '천안 (천안IC)', lat: 36.8151, lng: 127.1139 },
+      '수원': { name: '수원 (수원신갈IC)', lat: 37.2636, lng: 127.0286 },
+      '성남': { name: '성남 (판교IC)', lat: 37.3947, lng: 127.1112 },
+      '판교': { name: '성남 판교IC', lat: 37.3947, lng: 127.1112 },
+      '인천': { name: '인천 (서창JC/인천시청)', lat: 37.4563, lng: 126.7052 },
+      '강릉': { name: '강릉 (강릉IC)', lat: 37.7519, lng: 128.8761 },
+      '속초': { name: '속초', lat: 38.2070, lng: 128.5918 },
+      '원주': { name: '원주 (원주IC)', lat: 37.3422, lng: 127.9202 },
+      '평창': { name: '평창', lat: 37.3705, lng: 128.3906 },
+      '광주': { name: '광주 (광주톨게이트)', lat: 35.1595, lng: 126.8526 },
+      '전주': { name: '전주 (전주IC)', lat: 35.8242, lng: 127.1480 },
+      '목포': { name: '목포', lat: 34.8118, lng: 126.3922 },
+      '여수': { name: '여수', lat: 34.7604, lng: 127.6622 },
+      '순천': { name: '순천 (순천IC)', lat: 34.9506, lng: 127.4872 },
+      '충주': { name: '충주', lat: 36.9910, lng: 127.9259 },
+      '안동': { name: '안동', lat: 36.5684, lng: 128.7294 },
+      '포항': { name: '포항', lat: 36.0190, lng: 129.3435 }
     };
 
     /**
-     * 3. 애플리케이션 상태 관리 변수
+     * 3. 전국 주요 고속도로 휴게소 마스터 데이터베이스
+     * - dir: 'UP' (북향/서울방향), 'DOWN' (남향/부산·광주·창원방향), 'EAST' (강릉/동해방향), 'WEST' (인천/서해방향), 'BOTH' (양방향 통합)
      */
-    let currentRouteId = 'gyeongbu-up';
-    let activeFilters = new Set(); // 비어있으면 '전체(all)' 상태
-    let searchQuery = '';
-    let selectedStopId = null;
-    let mobileSheetState = 'half'; // 'half' | 'full' | 'collapsed'
+    const ALL_HIGHWAY_STOPS = [
+      // [경부고속도로 상행 - 서울방향]
+      {
+        id: 'gb-up-1',
+        name: '양산휴게소 (서울방향)',
+        highway: '경부고속도로',
+        dir: 'UP',
+        lat: 35.3372,
+        lng: 129.0598,
+        signatureFood: { name: '매실간장 삼겹살구이 정식', price: '11,500원', badge: '지역특산' },
+        subFoods: ['부산어묵우동', '수제돈가스'],
+        gasPrice: { gasoline: 1635, diesel: 1485, brand: 'ex-OIL 알뜰' },
+        facilities: ['ev', 'exOil', 'nursing'],
+        rating: 4.3,
+        highlight: '부산 출발 직후 첫 휴게소 · 초급속 충전기 6기 운영',
+        status: '원활'
+      },
+      {
+        id: 'gb-up-2',
+        name: '언양휴게소 (서울방향)',
+        highway: '경부고속도로',
+        dir: 'UP',
+        lat: 35.6022,
+        lng: 129.1247,
+        signatureFood: { name: '언양식 한우불고기 비빔밥', price: '12,000원', badge: '베스트' },
+        subFoods: ['언양불고기버거', '소머리국밥'],
+        gasPrice: { gasoline: 1639, diesel: 1489, brand: 'ex-OIL 알뜰' },
+        facilities: ['ev', 'exOil', 'famousFood', 'truckLounge'],
+        rating: 4.5,
+        highlight: '울산·언양 전통 불고기 맛집과 반구대 암각화 테마 공원',
+        status: '원활'
+      },
+      {
+        id: 'gb-up-3',
+        name: '경주휴게소 (서울방향)',
+        highway: '경부고속도로',
+        dir: 'UP',
+        lat: 35.7584,
+        lng: 129.1887,
+        signatureFood: { name: '경주 한우소머리국밥 & 경주빵', price: '10,500원', badge: '명물' },
+        subFoods: ['찰보리빵', '낙지덮밥'],
+        gasPrice: { gasoline: 1642, diesel: 1490, brand: 'ex-OIL 알뜰' },
+        facilities: ['ev', 'exOil', 'nursing', 'famousFood'],
+        rating: 4.4,
+        highlight: '신라 한옥 기와지붕 테마 외관 · 갓 구운 황남경주빵 판매',
+        status: '보통'
+      },
+      {
+        id: 'gb-up-4',
+        name: '건천휴게소 (서울방향)',
+        highway: '경부고속도로',
+        dir: 'UP',
+        lat: 35.8398,
+        lng: 129.0485,
+        signatureFood: { name: '누구나 돌솥비빔밥', price: '9,500원', badge: '가성비' },
+        subFoods: ['건천버섯칼국수', '호두과자'],
+        gasPrice: { gasoline: 1630, diesel: 1479, brand: 'ex-OIL 알뜰' },
+        facilities: ['exOil', 'truckLounge'],
+        rating: 4.1,
+        highlight: '경부선 상행 알뜰주유소 최저가 수준 · 조용하고 빠른 휴식',
+        status: '원활'
+      },
+      {
+        id: 'gb-up-5',
+        name: '영천휴게소 (서울방향)',
+        highway: '경부고속도로',
+        dir: 'UP',
+        lat: 35.9102,
+        lng: 128.9095,
+        signatureFood: { name: '얼큰 대파육개장', price: '9,500원', badge: '인기' },
+        subFoods: ['제육덮밥', '영천포도주스'],
+        gasPrice: { gasoline: 1638, diesel: 1485, brand: 'ex-OIL 알뜰' },
+        facilities: ['ev', 'exOil', 'nursing'],
+        rating: 4.2,
+        highlight: '넓은 주차 공간과 쾌적한 그린테리아 식음 공간',
+        status: '원활'
+      },
+      {
+        id: 'gb-up-6',
+        name: '평사휴게소 (서울방향)',
+        highway: '경부고속도로',
+        dir: 'UP',
+        lat: 35.9118,
+        lng: 128.8286,
+        signatureFood: { name: '애플수제등심돈가스', price: '10,500원', badge: '수제명물' },
+        subFoods: ['대구따로국밥', '납작만두떡볶이'],
+        gasPrice: { gasoline: 1639, diesel: 1488, brand: 'ex-OIL 알뜰' },
+        facilities: ['ev', 'exOil', 'famousFood', 'nursing'],
+        rating: 4.4,
+        highlight: '대구 진입 전 거점 휴게소 · 사과 소스 수제 돈가스 인기',
+        status: '보통'
+      },
+      {
+        id: 'gb-up-7',
+        name: '칠곡휴게소 (서울방향)',
+        highway: '경부고속도로',
+        dir: 'UP',
+        lat: 36.0285,
+        lng: 128.4315,
+        signatureFood: { name: '칠곡 시골돼지짜글이 정식', price: '10,000원', badge: '맛집인증' },
+        subFoods: ['한의원한방국밥', '소떡소떡'],
+        gasPrice: { gasoline: 1634, diesel: 1482, brand: 'ex-OIL 알뜰' },
+        facilities: ['ev', 'exOil', 'famousFood', 'truckLounge', 'nursing'],
+        rating: 4.6,
+        highlight: '대구·구미권 대형 복합휴게소 · 화물차 라운지 및 샤워실 완비',
+        status: '보통'
+      },
+      {
+        id: 'gb-up-8',
+        name: '추풍령휴게소 (서울방향)',
+        highway: '경부고속도로',
+        dir: 'UP',
+        lat: 36.1995,
+        lng: 127.9852,
+        signatureFood: { name: '추풍령 지례흑돼지 석쇠불고기', price: '11,500원', badge: '백년가게급' },
+        subFoods: ['수제석쇠불고기버거', '추풍령산채비빔밥'],
+        gasPrice: { gasoline: 1645, diesel: 1495, brand: 'ex-OIL 알뜰' },
+        facilities: ['ev', 'exOil', 'famousFood', 'nursing', 'truckLounge'],
+        rating: 4.7,
+        highlight: '대한민국 제1호 고속도로 휴게소 기념탑 · 부산~서울 중간 지점',
+        status: '원활'
+      },
+      {
+        id: 'gb-both-geumgang',
+        name: '금강휴게소 (상·하행 통합)',
+        highway: '경부고속도로',
+        dir: 'BOTH',
+        lat: 36.2775,
+        lng: 127.6725,
+        signatureFood: { name: '금강 도리뱅뱅 정식 & 어죽', price: '13,000원', badge: '전국명물' },
+        subFoods: ['올갱이국밥', '통감자구이'],
+        gasPrice: { gasoline: 1649, diesel: 1499, brand: 'SK에너지' },
+        facilities: ['ev', 'famousFood', 'nursing'],
+        rating: 4.8,
+        highlight: '이영자 추천 도리뱅뱅 맛집 · 금강 수변 절경 전망 테라스 보유',
+        status: '혼잡'
+      },
+      {
+        id: 'gb-up-10',
+        name: '옥천휴게소 (서울방향)',
+        highway: '경부고속도로',
+        dir: 'UP',
+        lat: 36.3082,
+        lng: 127.5714,
+        signatureFood: { name: '옥천 한방닭곰탕', price: '9,500원', badge: '보양식' },
+        subFoods: ['버섯돌솥비빔밥', '통옥수수구이'],
+        gasPrice: { gasoline: 1636, diesel: 1484, brand: 'ex-OIL 알뜰' },
+        facilities: ['ev', 'exOil', 'truckLounge'],
+        rating: 4.2,
+        highlight: '금강휴게소가 붐빌 때 여유롭게 쉬어가는 알짜 휴게소',
+        status: '원활'
+      },
+      {
+        id: 'gb-up-11',
+        name: '죽암휴게소 (서울방향)',
+        highway: '경부고속도로',
+        dir: 'UP',
+        lat: 36.4945,
+        lng: 127.4305,
+        signatureFood: { name: '보은 대추왕갈비탕 & 멍게비빔밥', price: '13,500원', badge: '대표맛집' },
+        subFoods: ['공주알밤빵', '우거지해장국'],
+        gasPrice: { gasoline: 1640, diesel: 1488, brand: 'ex-OIL 알뜰' },
+        facilities: ['ev', 'exOil', 'famousFood', 'nursing', 'truckLounge', 'pharmacy'],
+        rating: 4.6,
+        highlight: '대전·청주 통과 구간 대형 거점 · 반려견 놀이터 및 약국 운영',
+        status: '보통'
+      },
+      {
+        id: 'gb-up-12',
+        name: '천안호두휴게소 (서울방향)',
+        highway: '경부고속도로',
+        dir: 'UP',
+        lat: 36.7368,
+        lng: 127.2562,
+        signatureFood: { name: '원조 갓 구운 천안 명물 호두과자', price: '6,000원~', badge: '필수간식' },
+        subFoods: ['병천순대국밥', '얼큰해물짬뽕'],
+        gasPrice: { gasoline: 1639, diesel: 1487, brand: 'ex-OIL 알뜰' },
+        facilities: ['ev', 'exOil', 'famousFood', 'nursing'],
+        rating: 4.6,
+        highlight: '따끈한 천안 호두과자와 진한 병천순대국밥 성지',
+        status: '보통'
+      },
+      {
+        id: 'gb-up-13',
+        name: '안성휴게소 (서울방향)',
+        highway: '경부고속도로',
+        dir: 'UP',
+        lat: 37.0135,
+        lng: 127.1292,
+        signatureFood: { name: '안성맞춤 한우국밥 & 원조 소떡소떡', price: '11,000원', badge: '전국1위' },
+        subFoods: ['안성마늘보쌈정식', '통감자버터구이'],
+        gasPrice: { gasoline: 1644, diesel: 1492, brand: 'ex-OIL 알뜰' },
+        facilities: ['ev', 'exOil', 'famousFood', 'nursing', 'pharmacy'],
+        rating: 4.8,
+        highlight: '고속도로 휴게소 판매 1위 안성국밥 · 내과의원 및 약국 보유',
+        status: '혼잡'
+      },
+      {
+        id: 'gb-up-14',
+        name: '기흥휴게소 (서울방향)',
+        highway: '경부고속도로',
+        dir: 'UP',
+        lat: 37.2355,
+        lng: 127.1045,
+        signatureFood: { name: '향천우동 & 기흥 수제돈가스', price: '8,500원', badge: '인기' },
+        subFoods: ['가마솥비빔밥', '핫도그'],
+        gasPrice: { gasoline: 1648, diesel: 1498, brand: 'ex-OIL 알뜰' },
+        facilities: ['ev', 'exOil', 'nursing', 'pharmacy'],
+        rating: 4.3,
+        highlight: '수도권 진입 직전 대형 휴게소 · 쇼핑몰 연계 및 광역버스 환승',
+        status: '보통'
+      },
+      {
+        id: 'gb-up-15',
+        name: '죽전휴게소 (서울방향)',
+        highway: '경부고속도로',
+        dir: 'UP',
+        lat: 37.3318,
+        lng: 127.1042,
+        signatureFood: { name: '죽전 임금님 이천쌀밥 정식', price: '12,000원', badge: '명품한식' },
+        subFoods: ['수제어묵바', '아메리카노'],
+        gasPrice: { gasoline: 1659, diesel: 1510, brand: 'ex-OIL 알뜰' },
+        facilities: ['ev', 'exOil', 'famousFood', 'nursing'],
+        rating: 4.5,
+        highlight: '서울 진입 15km 전 · 갓 지은 이천 돌솥쌀밥 정식 전문',
+        status: '보통'
+      },
+      {
+        id: 'gb-both-mannam',
+        name: '서울만남의광장휴게소',
+        highway: '경부고속도로',
+        dir: 'BOTH',
+        lat: 37.4598,
+        lng: 127.0422,
+        signatureFood: { name: '말죽거리 한우소고기국밥', price: '10,500원', badge: '전통명물' },
+        subFoods: ['해물순두부찌개', '생크림호두과자'],
+        gasPrice: { gasoline: 1652, diesel: 1502, brand: 'ex-OIL 알뜰' },
+        facilities: ['ev', 'exOil', 'famousFood', 'nursing', 'pharmacy'],
+        rating: 4.7,
+        highlight: '양재IC 인접 · 말죽거리 소고기국밥으로 유명한 수도권 대표 거점',
+        status: '혼잡'
+      },
 
-    // Leaflet 지도 객체 및 레이어 그룹
-    let map = null;
-    let routeLayerGroup = null;
-    let markersLayerGroup = null;
-    let markerInstances = {}; // stop.id -> L.marker 매핑
+      // [경부고속도로 하행 - 부산/대전방향]
+      {
+        id: 'gb-dn-2',
+        name: '기흥휴게소 (부산방향)',
+        highway: '경부고속도로',
+        dir: 'DOWN',
+        lat: 37.2185,
+        lng: 127.1038,
+        signatureFood: { name: '기흥 수제왕돈가스 & 우동세트', price: '11,500원', badge: '인기' },
+        subFoods: ['소고기장터국밥', '소떡소떡'],
+        gasPrice: { gasoline: 1646, diesel: 1495, brand: 'ex-OIL 알뜰' },
+        facilities: ['ev', 'exOil', 'nursing', 'pharmacy'],
+        rating: 4.4,
+        highlight: '대규모 푸드코트 및 프리미엄 아울렛 연결 복합 휴게소',
+        status: '보통'
+      },
+      {
+        id: 'gb-dn-3',
+        name: '안성휴게소 (부산방향)',
+        highway: '경부고속도로',
+        dir: 'DOWN',
+        lat: 37.0655,
+        lng: 127.1142,
+        signatureFood: { name: '안성 한우소머리국밥 & 고구마치즈돈가스', price: '11,000원', badge: '전국명물' },
+        subFoods: ['안성소떡소떡', '맥반석오징어'],
+        gasPrice: { gasoline: 1640, diesel: 1488, brand: 'ex-OIL 알뜰' },
+        facilities: ['ev', 'exOil', 'famousFood', 'nursing', 'truckLounge', 'pharmacy'],
+        rating: 4.8,
+        highlight: '하행선 최대 인기 휴게소 · 어린이 놀이터 및 수유실 최상급 시설',
+        status: '혼잡'
+      },
+      {
+        id: 'gb-dn-4',
+        name: '망향휴게소 (부산방향)',
+        highway: '경부고속도로',
+        dir: 'DOWN',
+        lat: 36.8542,
+        lng: 127.1812,
+        signatureFood: { name: '망향 명품 닭개장 & 호두과자', price: '10,000원', badge: '전통맛집' },
+        subFoods: ['빠금장된장찌개', '천안호두과자'],
+        gasPrice: { gasoline: 1638, diesel: 1485, brand: 'ex-OIL 알뜰' },
+        facilities: ['ev', 'exOil', 'famousFood', 'nursing'],
+        rating: 4.6,
+        highlight: '천안 진입 구간 대표 휴게소 · 열린 화장실 문화관',
+        status: '보통'
+      },
+      {
+        id: 'gb-dn-4b',
+        name: '천안삼거리휴게소 (부산방향)',
+        highway: '경부고속도로',
+        dir: 'DOWN',
+        lat: 36.7595,
+        lng: 127.2435,
+        signatureFood: { name: '천안삼거리 해물볶음돈가스 & 호두과자', price: '11,500원', badge: '별미' },
+        subFoods: ['병천순대국밥', '호두과자'],
+        gasPrice: { gasoline: 1637, diesel: 1485, brand: 'ex-OIL 알뜰' },
+        facilities: ['ev', 'exOil', 'famousFood', 'nursing'],
+        rating: 4.5,
+        highlight: '하행선 호두과자 필수 구매 성지 · 넓은 산책로 보유',
+        status: '보통'
+      },
+      {
+        id: 'gb-dn-5',
+        name: '죽암휴게소 (부산방향)',
+        highway: '경부고속도로',
+        dir: 'DOWN',
+        lat: 36.4922,
+        lng: 127.4312,
+        signatureFood: { name: '죽암 왕갈비탕 & 충청도 짜글이', price: '13,000원', badge: '베스트' },
+        subFoods: ['수제어묵우동', '버터구이감자'],
+        gasPrice: { gasoline: 1636, diesel: 1484, brand: 'ex-OIL 알뜰' },
+        facilities: ['ev', 'exOil', 'famousFood', 'nursing', 'truckLounge'],
+        rating: 4.5,
+        highlight: '청주·대전 통과 구간 거점 · 화물차 수면실 및 샤워실 운영',
+        status: '원활'
+      },
+      {
+        id: 'gb-dn-7',
+        name: '추풍령휴게소 (부산방향)',
+        highway: '경부고속도로',
+        dir: 'DOWN',
+        lat: 36.2002,
+        lng: 127.9845,
+        signatureFood: { name: '지례흑돼지 고추장불고기 정식', price: '11,500원', badge: '지역명물' },
+        subFoods: ['산채비빔밥', '호두잣과자'],
+        gasPrice: { gasoline: 1642, diesel: 1490, brand: 'ex-OIL 알뜰' },
+        facilities: ['ev', 'exOil', 'famousFood', 'nursing', 'truckLounge'],
+        rating: 4.6,
+        highlight: '백두대간 추풍령 고개 위 탁 트인 산세와 쉼터 공원',
+        status: '원활'
+      },
+      {
+        id: 'gb-dn-8',
+        name: '칠곡휴게소 (부산방향)',
+        highway: '경부고속도로',
+        dir: 'DOWN',
+        lat: 36.0260,
+        lng: 128.4330,
+        signatureFood: { name: '아카시아 벌꿀 돈가스 & 한우국밥', price: '10,500원', badge: '특화메뉴' },
+        subFoods: ['제육덮밥', '소떡소떡'],
+        gasPrice: { gasoline: 1632, diesel: 1480, brand: 'ex-OIL 알뜰' },
+        facilities: ['ev', 'exOil', 'famousFood', 'nursing', 'truckLounge'],
+        rating: 4.5,
+        highlight: '대구 진입 전 저렴한 유가와 넓은 주차장을 갖춘 핵심 휴게소',
+        status: '원활'
+      },
+      {
+        id: 'gb-dn-9',
+        name: '통도사휴게소 (부산방향)',
+        highway: '경부고속도로',
+        dir: 'DOWN',
+        lat: 35.4810,
+        lng: 129.1150,
+        signatureFood: { name: '통도사 산채비빔밥 & 언양불고기', price: '11,000원', badge: '인기' },
+        subFoods: ['부산어묵탕', '통감자'],
+        gasPrice: { gasoline: 1635, diesel: 1483, brand: 'ex-OIL 알뜰' },
+        facilities: ['ev', 'exOil', 'famousFood', 'nursing'],
+        rating: 4.6,
+        highlight: '부산 도착 35km 전 마지막 대형 휴게소 · 통도사 하이패스IC 인접',
+        status: '보통'
+      },
+
+      // [중부내륙고속도로 / 남해고속도로 - 창원/마산/대구 <-> 서울 노선]
+      {
+        id: 'jb-both-1',
+        name: '영산휴게소 (양평/서울방향)',
+        highway: '중부내륙고속도로',
+        dir: 'BOTH',
+        lat: 35.4465,
+        lng: 128.5150,
+        signatureFood: { name: '창녕 양파 제육덮밥 & 한우국밥', price: '10,000원', badge: '특산메뉴' },
+        subFoods: ['창녕마늘떡갈비', '통감자구이'],
+        gasPrice: { gasoline: 1633, diesel: 1481, brand: 'ex-OIL 알뜰' },
+        facilities: ['ev', 'exOil', 'nursing', 'truckLounge'],
+        rating: 4.4,
+        highlight: '창원·마산 출발 후 중부내륙선 진입 시 만나는 첫 거점 휴게소',
+        status: '원활'
+      },
+      {
+        id: 'jb-both-2',
+        name: '현풍휴게소 (양방향 테마공원)',
+        highway: '중부내륙고속도로',
+        dir: 'BOTH',
+        lat: 35.7012,
+        lng: 128.4352,
+        signatureFood: { name: '현풍 백년도깨비 한우곰탕', price: '11,000원', badge: '전통명물' },
+        subFoods: ['달성소머리국밥', '수제돈가스'],
+        gasPrice: { gasoline: 1635, diesel: 1484, brand: 'ex-OIL 알뜰' },
+        facilities: ['ev', 'exOil', 'famousFood', 'nursing'],
+        rating: 4.6,
+        highlight: '500년 느티나무 소원 테마파크와 진한 현풍 곰탕 맛집',
+        status: '보통'
+      },
+      {
+        id: 'jb-both-3',
+        name: '선산휴게소 (양평/창원 겸용권)',
+        highway: '중부내륙고속도로',
+        dir: 'BOTH',
+        lat: 36.2385,
+        lng: 128.3168,
+        signatureFood: { name: '구미 선산곱창전골 정식', price: '12,000원', badge: '별미맛집' },
+        subFoods: ['초당순두부', '호두과자'],
+        gasPrice: { gasoline: 1634, diesel: 1482, brand: 'ex-OIL 알뜰' },
+        facilities: ['ev', 'exOil', 'famousFood', 'nursing', 'truckLounge'],
+        rating: 4.5,
+        highlight: '중부내륙선 최대 규모 휴게소 · 알뜰주유소 최저가 수준',
+        status: '보통'
+      },
+      {
+        id: 'jb-both-4',
+        name: '문경휴게소 (양방향)',
+        highway: '중부내륙고속도로',
+        dir: 'BOTH',
+        lat: 36.6318,
+        lng: 128.1492,
+        signatureFood: { name: '문경 약돌돼지 고추장불고기 정식', price: '11,500원', badge: '지역명품' },
+        subFoods: ['오미자돈가스', '산채비빔밥'],
+        gasPrice: { gasoline: 1640, diesel: 1489, brand: 'ex-OIL 알뜰' },
+        facilities: ['ev', 'exOil', 'famousFood', 'nursing', 'truckLounge'],
+        rating: 4.7,
+        highlight: '문경새재 절경과 특산 약돌돼지 요리로 유명한 중부내륙 핵심 쉼터',
+        status: '원활'
+      },
+      {
+        id: 'jb-both-5',
+        name: '충주휴게소 (양방향)',
+        highway: '중부내륙고속도로',
+        dir: 'BOTH',
+        lat: 37.0185,
+        lng: 127.8542,
+        signatureFood: { name: '충주 사과돈가스 & 한우국밥', price: '10,500원', badge: '인기' },
+        subFoods: ['충주사과빵', '얼큰우동'],
+        gasPrice: { gasoline: 1639, diesel: 1488, brand: 'ex-OIL 알뜰' },
+        facilities: ['ev', 'exOil', 'famousFood', 'nursing'],
+        rating: 4.5,
+        highlight: '충주 사과 소스로 만든 돈가스와 사과빵 간식 명소',
+        status: '보통'
+      },
+      {
+        id: 'jb-both-6',
+        name: '서여주휴게소 (양방향)',
+        highway: '중부내륙고속도로',
+        dir: 'BOTH',
+        lat: 37.2695,
+        lng: 127.5425,
+        signatureFood: { name: '여주 쌀밥 순두부찌개 백반', price: '10,000원', badge: '깔끔한식' },
+        subFoods: ['수제어묵', '호두과자'],
+        gasPrice: { gasoline: 1642, diesel: 1490, brand: 'ex-OIL 알뜰' },
+        facilities: ['ev', 'exOil', 'nursing'],
+        rating: 4.3,
+        highlight: '여주JC 합류 직전 여유롭게 쉬어갈 수 있는 쾌적한 휴게소',
+        status: '원활'
+      },
+
+      // [영동고속도로 - 인천 <-> 강릉 노선]
+      {
+        id: 'yd-1',
+        name: '안산복합휴게소 (강릉/인천 양방향)',
+        highway: '영동고속도로',
+        dir: 'BOTH',
+        lat: 37.3358,
+        lng: 126.8615,
+        signatureFood: { name: '해물순두부정식 & 가마솥국밥', price: '10,500원', badge: '신규오픈' },
+        subFoods: ['뉴욕핫도그', '통감자'],
+        gasPrice: { gasoline: 1648, diesel: 1498, brand: 'ex-OIL 알뜰' },
+        facilities: ['ev', 'exOil', 'nursing', 'pharmacy'],
+        rating: 4.5,
+        highlight: '최신식 상공형 복합휴게소 · 깔끔한 라운지형 식음 공간',
+        status: '보통'
+      },
+      {
+        id: 'yd-2',
+        name: '용인휴게소 (강릉/인천)',
+        highway: '영동고속도로',
+        dir: 'BOTH',
+        lat: 37.2368,
+        lng: 127.2588,
+        signatureFood: { name: '용인 백옥쌀 한우소머리국밥', price: '11,000원', badge: '인기' },
+        subFoods: ['현미돌솥비빔밥', '수제어묵'],
+        gasPrice: { gasoline: 1639, diesel: 1488, brand: 'ex-OIL 알뜰' },
+        facilities: ['ev', 'exOil', 'nursing', 'truckLounge'],
+        rating: 4.3,
+        highlight: '영동선 초반 알뜰주유소 인기 경유지',
+        status: '원활'
+      },
+      {
+        id: 'yd-3',
+        name: '덕평자연휴게소 (양방향 통합)',
+        highway: '영동고속도로',
+        dir: 'BOTH',
+        lat: 37.2248,
+        lng: 127.4320,
+        signatureFood: { name: '덕평 소고기국밥', price: '10,500원', badge: '전국판매1위' },
+        subFoods: ['덕평수제돈가스', '임실치즈구이'],
+        gasPrice: { gasoline: 1655, diesel: 1505, brand: 'SK에너지' },
+        facilities: ['ev', 'famousFood', 'nursing', 'pharmacy'],
+        rating: 4.9,
+        highlight: '아울렛·생태공원·반려견 테마파크를 갖춘 국내 최고 복합휴게소',
+        status: '혼잡'
+      },
+      {
+        id: 'yd-4',
+        name: '여주휴게소 (강릉/인천)',
+        highway: '영동고속도로',
+        dir: 'BOTH',
+        lat: 37.2652,
+        lng: 127.5960,
+        signatureFood: { name: '여주 임금님쌀 가마솥비빔밥', price: '10,500원', badge: '지역명물' },
+        subFoods: ['여주통감자구이', '명품우동'],
+        gasPrice: { gasoline: 1636, diesel: 1485, brand: 'ex-OIL 알뜰' },
+        facilities: ['ev', 'exOil', 'famousFood', 'nursing', 'truckLounge'],
+        rating: 4.5,
+        highlight: '영동선 대표 대형 휴게소 · 알뜰주유소 및 대형 전기차 충전소 완비',
+        status: '보통'
+      },
+      {
+        id: 'yd-5',
+        name: '문막휴게소 (강릉/인천)',
+        highway: '영동고속도로',
+        dir: 'BOTH',
+        lat: 37.2780,
+        lng: 127.7985,
+        signatureFood: { name: '원주 한우뽕잎국밥', price: '11,000원', badge: '특산맛집' },
+        subFoods: ['곤드레돌솥밥', '강원도감자떡'],
+        gasPrice: { gasoline: 1638, diesel: 1486, brand: 'ex-OIL 알뜰' },
+        facilities: ['ev', 'exOil', 'famousFood', 'nursing'],
+        rating: 4.4,
+        highlight: '강원도 초입 휴게소 · 별빛 화장실 및 산책 정원 유명',
+        status: '원활'
+      },
+      {
+        id: 'yd-6',
+        name: '횡성휴게소 (강릉/인천)',
+        highway: '영동고속도로',
+        dir: 'BOTH',
+        lat: 37.4590,
+        lng: 128.1112,
+        signatureFood: { name: '횡성 한우떡더덕스테이크', price: '16,000원', badge: '이영자맛집' },
+        subFoods: ['횡성한우국밥', '안흥찐빵'],
+        gasPrice: { gasoline: 1644, diesel: 1492, brand: 'ex-OIL 알뜰' },
+        facilities: ['ev', 'exOil', 'famousFood', 'nursing'],
+        rating: 4.8,
+        highlight: '고속도로에서 맛보는 진짜 횡성한우 스테이크와 원조 안흥찐빵',
+        status: '혼잡'
+      },
+      {
+        id: 'yd-7',
+        name: '평창휴게소 (강릉/인천)',
+        highway: '영동고속도로',
+        dir: 'BOTH',
+        lat: 37.5752,
+        lng: 128.4265,
+        signatureFood: { name: '평창 황태회관 황태해장국', price: '11,000원', badge: '강원명물' },
+        subFoods: ['메밀전병', '감자옹심이'],
+        gasPrice: { gasoline: 1645, diesel: 1494, brand: 'ex-OIL 알뜰' },
+        facilities: ['ev', 'exOil', 'famousFood', 'nursing'],
+        rating: 4.6,
+        highlight: '진부령 황태와 평창 메밀 요리를 맛볼 수 있는 고원 휴게소',
+        status: '원활'
+      },
+      {
+        id: 'yd-8',
+        name: '강릉대관령휴게소 (강릉/인천)',
+        highway: '영동고속도로',
+        dir: 'BOTH',
+        lat: 37.7582,
+        lng: 128.8215,
+        signatureFood: { name: '초당순두부 황태짬뽕 & 감자바우', price: '10,500원', badge: '동해안명물' },
+        subFoods: ['초당옥수수커피', '오징어순대'],
+        gasPrice: { gasoline: 1640, diesel: 1489, brand: 'ex-OIL 알뜰' },
+        facilities: ['ev', 'exOil', 'famousFood', 'nursing', 'truckLounge'],
+        rating: 4.7,
+        highlight: '대관령 고개를 내려와 강릉 바다 진입 직전 만나는 휴게소',
+        status: '원활'
+      },
+
+      // [호남/논산천안고속도로 - 서울/천안 <-> 전주/광주 노선]
+      {
+        id: 'hn-1',
+        name: '정안알밤휴게소 (상·하행 환승거점)',
+        highway: '논산천안고속도로',
+        dir: 'BOTH',
+        lat: 36.5355,
+        lng: 127.1210,
+        signatureFood: { name: '공주 알밤왕돈가스 & 한우국밥', price: '11,000원', badge: '공주특산' },
+        subFoods: ['정안알밤빵', '군밤'],
+        gasPrice: { gasoline: 1638, diesel: 1486, brand: 'ex-OIL 알뜰' },
+        facilities: ['ev', 'exOil', 'famousFood', 'nursing', 'pharmacy'],
+        rating: 4.7,
+        highlight: '호남선 고속버스 환승 거점 · 달콤한 공주 알밤 간식 성지',
+        status: '혼잡'
+      },
+      {
+        id: 'hn-2',
+        name: '탄천휴게소 (양방향)',
+        highway: '논산천안고속도로',
+        dir: 'BOTH',
+        lat: 36.3220,
+        lng: 127.0580,
+        signatureFood: { name: '부여 연잎밥 정식 & 장터국밥', price: '11,500원', badge: '별미' },
+        subFoods: ['버섯칼국수', '호두과자'],
+        gasPrice: { gasoline: 1632, diesel: 1480, brand: 'ex-OIL 알뜰' },
+        facilities: ['ev', 'exOil', 'truckLounge'],
+        rating: 4.3,
+        highlight: '정안휴게소가 혼잡할 때 여유롭게 주유하고 쉬어가는 휴게소',
+        status: '원활'
+      },
+      {
+        id: 'hn-3',
+        name: '여산휴게소 (전주/광주·서울)',
+        highway: '호남고속도로',
+        dir: 'BOTH',
+        lat: 36.0462,
+        lng: 127.0785,
+        signatureFood: { name: '익산 마약육개장 & 돌솥비빔밥', price: '10,000원', badge: '인기' },
+        subFoods: ['전주모주(무알콜)', '통감자'],
+        gasPrice: { gasoline: 1636, diesel: 1484, brand: 'ex-OIL 알뜰' },
+        facilities: ['ev', 'exOil', 'nursing'],
+        rating: 4.4,
+        highlight: '전북 진입 첫 관문 휴게소 · 깔끔한 한식당가 운영',
+        status: '원활'
+      },
+      {
+        id: 'hn-4',
+        name: '이서휴게소 (광주/순천·서울)',
+        highway: '호남고속도로',
+        dir: 'BOTH',
+        lat: 35.8025,
+        lng: 127.0465,
+        signatureFood: { name: '전주 명품 꼬막비빔밥 & 콩나물국밥', price: '11,500원', badge: '전주명물' },
+        subFoods: ['임실치즈롤', '수제초코파이'],
+        gasPrice: { gasoline: 1635, diesel: 1483, brand: 'ex-OIL 알뜰' },
+        facilities: ['ev', 'exOil', 'famousFood', 'nursing', 'truckLounge'],
+        rating: 4.6,
+        highlight: '전주 인근 대표 맛집 휴게소 · 남도 꼬막비빔밥과 콩나물국밥 인기',
+        status: '보통'
+      },
+      {
+        id: 'hn-5',
+        name: '정읍녹두장군휴게소 (광주·서울)',
+        highway: '호남고속도로',
+        dir: 'BOTH',
+        lat: 35.5880,
+        lng: 126.8260,
+        signatureFood: { name: '정읍 복분자 낙지연포탕 & 녹두빈대떡', price: '13,000원', badge: '보양별미' },
+        subFoods: ['쌍화차', '뽕잎만두'],
+        gasPrice: { gasoline: 1637, diesel: 1485, brand: 'ex-OIL 알뜰' },
+        facilities: ['ev', 'exOil', 'famousFood', 'nursing'],
+        rating: 4.5,
+        highlight: '정읍 전통 쌍화차와 복분자 특화 요리를 맛볼 수 있는 테마 휴게소',
+        status: '원활'
+      },
+      {
+        id: 'hn-6',
+        name: '백양사휴게소 (광주·서울)',
+        highway: '호남고속도로',
+        dir: 'BOTH',
+        lat: 35.3745,
+        lng: 126.7825,
+        signatureFood: { name: '장성 애호박 돼지찌개 정식', price: '10,500원', badge: '남도손맛' },
+        subFoods: ['된장찌개', '감자구이'],
+        gasPrice: { gasoline: 1639, diesel: 1488, brand: 'ex-OIL 알뜰' },
+        facilities: ['ev', 'exOil', 'famousFood', 'nursing'],
+        rating: 4.5,
+        highlight: '광주 진입 전 마지막 휴게소 · 칼칼하고 진한 남도식 애호박찌개 맛집',
+        status: '원활'
+      }
+    ];
 
     /**
-     * 4. 초기화 함수
+     * 4. 현재 활성화된 경로 상태 객체
+     */
+    let activeRouteData = {
+      startName: '부산 (부산역)',
+      startCoord: [35.1796, 129.0756],
+      endName: '서울 (서울역)',
+      endCoord: [37.5547, 126.9707],
+      totalDistanceKm: 396,
+      estTimeText: '약 4시간 30분',
+      themeColor: '#2563eb',
+      polyline: [],
+      matchedStops: []
+    };
+
+    let activeFilters = new Set();
+    let searchQuery = '';
+    let selectedStopId = null;
+    let mobileSheetState = 'half';
+    let currentTileMode = 'osm'; // 'osm' | 'satellite'
+
+    // Leaflet 지도 객체 및 레이어
+    let map = null;
+    let osmTileLayer = null;
+    let satelliteTileLayer = null;
+    let routeLayerGroup = null;
+    let markersLayerGroup = null;
+    let markerInstances = {};
+
+    /**
+     * 5. 초기화
      */
     window.addEventListener('DOMContentLoaded', () => {
       initMap();
       renderFilterChips();
-      loadRoute(currentRouteId, true);
+      // 초기 진입 시 부산 -> 서울 경로 탐색 실행
+      executeRouteSearch('부산', '서울');
       lucide.createIcons();
     });
 
     /**
-     * 5. Leaflet 지도 초기화
+     * 6. Leaflet 지도 초기화 (API Key가 전혀 필요 없는 공식 OpenStreetMap + Esri 위성 타일 적용)
      */
     function initMap() {
-      // 대한민국 중심 좌표로 초기화
       map = L.map('map', {
-        center: [36.35, 127.95],
-        zoom: 8,
+        center: [36.35, 127.90],
+        zoom: 7,
         zoomControl: false,
         attributionControl: true
       });
 
-      // 시인성 높은 밝은 톤 지도 타일 (CartoDB Voyager + 한국어 라벨 호환 오픈스트리트맵)
-      L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
-        subdomains: 'abcd',
+      // 1) 기본 도로 지도: OpenStreetMap 공식 표준 타일 (API 키 불필요, 대한민국 한글 지명 기본 표시)
+      osmTileLayer = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a> contributors',
+        maxZoom: 19
+      });
+
+      // 2) 보조 위성 지도: Esri World Imagery (API 키 불필요)
+      satelliteTileLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+        attribution: 'Tiles &copy; Esri &mdash; Source: Esri, Maxar, Earthstar Geographics',
         maxZoom: 18
-      }).addTo(map);
+      });
+
+      // 기본으로 OSM 레이어 추가
+      osmTileLayer.addTo(map);
 
       // 줌 컨트롤을 우측 하단에 배치
       L.control.zoom({ position: 'bottomright' }).addTo(map);
@@ -953,75 +1152,290 @@
       routeLayerGroup = L.layerGroup().addTo(map);
       markersLayerGroup = L.layerGroup().addTo(map);
 
-      // 창 크기 변경 시 지도 크기 재계산
       window.addEventListener('resize', () => {
         if (map) map.invalidateSize();
       });
     }
 
     /**
-     * 6. 필터링된 휴게소 배열 반환 (주행 순서 유지)
+     * 7. 지도 스타일 전환 (일반 도로 지도 <-> 위성 지도)
+     */
+    function toggleMapTileStyle() {
+      const btnText = document.getElementById('mapTileToggleText');
+      if (currentTileMode === 'osm') {
+        map.removeLayer(osmTileLayer);
+        satelliteTileLayer.addTo(map);
+        currentTileMode = 'satellite';
+        btnText.textContent = '일반 도로 지도';
+      } else {
+        map.removeLayer(satelliteTileLayer);
+        osmTileLayer.addTo(map);
+        currentTileMode = 'osm';
+        btnText.textContent = '위성 지도 보기';
+      }
+    }
+
+    /**
+     * 8. 두 위경도 좌표 사이의 거리(km) 계산 (Haversine 공식)
+     */
+    function calcDistanceKm(lat1, lng1, lat2, lng2) {
+      const R = 6371;
+      const dLat = (lat2 - lat1) * Math.PI / 180;
+      const dLng = (lng2 - lng1) * Math.PI / 180;
+      const a =
+        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+        Math.sin(dLng / 2) * Math.sin(dLng / 2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+      return R * c;
+    }
+
+    /**
+     * 9. 장소명 텍스트 -> 좌표(위도, 경도) 변환 (내장 사전 우선 검색 후 Nominatim 무료 API 호출)
+     */
+    async function geocodePlaceName(rawText) {
+      const clean = rawText.trim();
+      // 1) 내장 주요 도시 사전과 일치하거나 키워드가 포함된 경우 즉시 반환
+      if (KOREA_PLACE_DICT[clean]) {
+        return KOREA_PLACE_DICT[clean];
+      }
+      for (const [key, val] of Object.entries(KOREA_PLACE_DICT)) {
+        if (clean.includes(key)) {
+          return { name: clean, lat: val.lat, lng: val.lng };
+        }
+      }
+
+      // 2) Nominatim 오픈소스 지오코딩 API 호출 (대한민국 내 검색)
+      try {
+        const url = `https://nominatim.openstreetmap.org/search?format=json&countrycodes=kr&limit=1&q=${encodeURIComponent(clean)}`;
+        const res = await fetch(url, {
+          headers: { 'Accept-Language': 'ko' }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data && data.length > 0) {
+            return {
+              name: clean,
+              lat: parseFloat(data[0].lat),
+              lng: parseFloat(data[0].lon)
+            };
+          }
+        }
+      } catch (e) {
+        console.warn('Nominatim 지오코딩 폴백 작동:', e);
+      }
+
+      return null;
+    }
+
+    /**
+     * 10. 출발지/도착지 좌표로 실제 도로 주행 경로(OSRM API) 조회 및 휴게소 자동 매칭
+     */
+    async function executeRouteSearch(startText, endText) {
+      const statusBox = document.getElementById('routeStatusNotice');
+      const statusText = document.getElementById('routeStatusText');
+      const searchBtn = document.getElementById('searchRouteBtn');
+
+      statusBox.classList.remove('hidden');
+      statusText.textContent = `'${startText} → ${endText}' 최적 고속도로 경로 및 휴게소 탐색 중...`;
+      searchBtn.disabled = true;
+
+      try {
+        const startPlace = await geocodePlaceName(startText) || KOREA_PLACE_DICT['부산'];
+        const endPlace = await geocodePlaceName(endText) || KOREA_PLACE_DICT['서울'];
+
+        let routeCoords = [];
+        let totalKm = 0;
+        let totalMinutes = 0;
+
+        // OSRM 무료 라우팅 API 호출
+        try {
+          const osrmUrl = `https://router.project-osrm.org/route/v1/driving/${startPlace.lng},${startPlace.lat};${endPlace.lng},${endPlace.lat}?overview=full&geometries=geojson`;
+          const res = await fetch(osrmUrl);
+          if (res.ok) {
+            const json = await res.json();
+            if (json.routes && json.routes.length > 0) {
+              const r = json.routes[0];
+              routeCoords = r.geometry.coordinates.map(c => [c[1], c[0]]); // [lat, lng] 변환
+              totalKm = Math.round(r.distance / 1000);
+              totalMinutes = Math.round(r.duration / 60);
+            }
+          }
+        } catch (err) {
+          console.warn('OSRM API 호출 실패, 내장 고속도로 선형으로 폴백합니다:', err);
+        }
+
+        // 만약 OSRM 응답이 없을 경우 시작~종점 사이 내장 경유선 생성
+        if (routeCoords.length < 2) {
+          routeCoords = buildFallbackPolyline(startPlace, endPlace);
+          totalKm = Math.round(calcDistanceKm(startPlace.lat, startPlace.lng, endPlace.lat, endPlace.lng) * 1.22);
+          totalMinutes = Math.round((totalKm / 92) * 60);
+        }
+
+        // 주행 방향 판별 (위도 차이가 크면 상행 UP / 하행 DOWN)
+        const latDiff = endPlace.lat - startPlace.lat;
+        const isGoingNorth = latDiff >= 0;
+
+        // 경로 폴리라인을 따라 누적 거리 배열 생성
+        const cumulativeKmAtPoint = [0];
+        let accKm = 0;
+        for (let i = 1; i < routeCoords.length; i++) {
+          accKm += calcDistanceKm(
+            routeCoords[i - 1][0], routeCoords[i - 1][1],
+            routeCoords[i][0], routeCoords[i][1]
+          );
+          cumulativeKmAtPoint.push(accKm);
+        }
+        if (totalKm === 0) totalKm = Math.max(10, Math.round(accKm));
+        if (totalMinutes === 0) totalMinutes = Math.max(15, Math.round((totalKm / 92) * 60));
+
+        // 전체 휴게소 중 현재 주행 경로 폴리라인에서 반경 5.5km 이내에 있는 휴게소 필터링
+        const matched = [];
+        ALL_HIGHWAY_STOPS.forEach(stop => {
+          // 상행/하행 전용 휴게소 방향 필터링 (경부선 등 상/하행 분리 휴게소 대응)
+          if (stop.dir === 'UP' && !isGoingNorth) return;
+          if (stop.dir === 'DOWN' && isGoingNorth) return;
+
+          let minDistanceToRoute = Infinity;
+          let closestPointIndex = 0;
+
+          for (let i = 0; i < routeCoords.length; i++) {
+            const d = calcDistanceKm(stop.lat, stop.lng, routeCoords[i][0], routeCoords[i][1]);
+            if (d < minDistanceToRoute) {
+              minDistanceToRoute = d;
+              closestPointIndex = i;
+            }
+          }
+
+          // 경로선으로부터 5.5km 이내에 위치한 휴게소만 채택
+          if (minDistanceToRoute <= 5.5) {
+            const kmFromStart = Math.max(1, Math.round(cumulativeKmAtPoint[closestPointIndex]));
+            matched.push({
+              ...stop,
+              kmFromStart,
+              routePointIndex: closestPointIndex
+            });
+          }
+        });
+
+        // 실제 주행 순서(출발지로부터의 경로 인덱스 순)대로 정렬
+        matched.sort((a, b) => a.routePointIndex - b.routePointIndex);
+
+        const hours = Math.floor(totalMinutes / 60);
+        const mins = totalMinutes % 60;
+        const estTimeText = hours > 0 ? `약 ${hours}시간 ${mins}분` : `약 ${mins}분`;
+
+        activeRouteData = {
+          startName: startText.trim(),
+          startCoord: [startPlace.lat, startPlace.lng],
+          endName: endText.trim(),
+          endCoord: [endPlace.lat, endPlace.lng],
+          totalDistanceKm: totalKm,
+          estTimeText,
+          themeColor: isGoingNorth ? '#2563eb' : '#4f46e5',
+          polyline: routeCoords,
+          matchedStops: matched
+        };
+
+        selectedStopId = null;
+
+        // 상단 플로팅 배지 업데이트
+        document.getElementById('floatingHighwaySign').style.backgroundColor = activeRouteData.themeColor;
+        document.getElementById('floatingRouteTitle').textContent = `${activeRouteData.startName} → ${activeRouteData.endName}`;
+        document.getElementById('floatingRouteSub').textContent = `총 ${totalKm}km · 경로 상 휴게소 ${matched.length}곳 탐색됨`;
+
+        // 지도 폴리라인 및 마커 렌더링
+        drawRoutePolyline(activeRouteData, true);
+        updateView();
+      } finally {
+        statusBox.classList.add('hidden');
+        searchBtn.disabled = false;
+        lucide.createIcons();
+      }
+    }
+
+    /**
+     * 11. 네트워크 오프라인 시 사용할 기본 고속도로 보간 폴리라인 생성기
+     */
+    function buildFallbackPolyline(startPlace, endPlace) {
+      const isNorth = endPlace.lat >= startPlace.lat;
+      const relevantStops = ALL_HIGHWAY_STOPS.filter(s => {
+        if (s.dir === 'UP' && !isNorth) return false;
+        if (s.dir === 'DOWN' && isNorth) return false;
+        const minLat = Math.min(startPlace.lat, endPlace.lat) - 0.05;
+        const maxLat = Math.max(startPlace.lat, endPlace.lat) + 0.05;
+        return s.lat >= minLat && s.lat <= maxLat;
+      }).sort((a, b) => isNorth ? a.lat - b.lat : b.lat - a.lat);
+
+      return [
+        [startPlace.lat, startPlace.lng],
+        ...relevantStops.map(s => [s.lat, s.lng]),
+        [endPlace.lat, endPlace.lng]
+      ];
+    }
+
+    /**
+     * 12. 폼 제출 / 스왑 / 프리셋 버튼 핸들러
+     */
+    function handleRouteSearchSubmit(e) {
+      e.preventDefault();
+      const s = document.getElementById('startInput').value.trim();
+      const d = document.getElementById('endInput').value.trim();
+      if (!s || !d) return;
+      executeRouteSearch(s, d);
+    }
+
+    function swapStartEndInputs() {
+      const startEl = document.getElementById('startInput');
+      const endEl = document.getElementById('endInput');
+      const temp = startEl.value;
+      startEl.value = endEl.value;
+      endEl.value = temp;
+      executeRouteSearch(startEl.value, endEl.value);
+    }
+
+    function applyPresetRoute(startText, endText) {
+      document.getElementById('startInput').value = startText;
+      document.getElementById('endInput').value = endText;
+      executeRouteSearch(startText, endText);
+    }
+
+    /**
+     * 13. 현재 탐색된 휴게소 중 편의시설 필터 + 검색어 필터 적용
      */
     function getFilteredStops() {
-      const route = HIGHWAY_ROUTES[currentRouteId];
       const query = searchQuery.trim().toLowerCase();
 
-      return route.stops.map((stop, idx) => ({
+      return activeRouteData.matchedStops.map((stop, idx) => ({
         ...stop,
-        driveOrder: idx + 1 // 원래 노선상의 주행 순서 번호 보존
+        driveOrder: idx + 1 // 주행 순서 번호 (1, 2, 3...)
       })).filter(stop => {
-        // 1) 편의시설 다중 필터 체크 (AND 조건으로 모든 선택된 필터를 보유한 곳 필터링)
         if (activeFilters.size > 0) {
           for (const reqFacility of activeFilters) {
             if (!stop.facilities.includes(reqFacility)) return false;
           }
         }
-        // 2) 검색어 필터 체크
         if (query) {
           const inName = stop.name.toLowerCase().includes(query);
+          const inHighway = stop.highway.toLowerCase().includes(query);
           const inSig = stop.signatureFood.name.toLowerCase().includes(query);
           const inSub = stop.subFoods.some(f => f.toLowerCase().includes(query));
           const inHighlight = stop.highlight.toLowerCase().includes(query);
-          if (!inName && !inSig && !inSub && !inHighlight) return false;
+          if (!inName && !inHighway && !inSig && !inSub && !inHighlight) return false;
         }
         return true;
       });
     }
 
     /**
-     * 7. 노선 로드 및 전체 UI 업데이트
-     */
-    function loadRoute(routeId, fitBounds = true) {
-      currentRouteId = routeId;
-      selectedStopId = null;
-
-      const route = HIGHWAY_ROUTES[routeId];
-
-      // 상단 플로팅 배지 업데이트
-      const signEl = document.getElementById('floatingHighwaySign');
-      signEl.textContent = route.highwayNo;
-      signEl.style.backgroundColor = route.themeColor;
-      document.getElementById('floatingRouteTitle').textContent = route.shortTitle;
-
-      // 셀렉트박스 값 동기화
-      document.getElementById('routeSelect').value = routeId;
-
-      // 고속도로 폴리라인 그리기
-      drawRoutePolyline(route, fitBounds);
-
-      // 타임라인 & 마커 렌더링
-      updateView();
-    }
-
-    /**
-     * 8. 고속도로 경로선(Polyline) 및 시종점 톨게이트 마커 렌더링
+     * 14. 고속도로 경로선(Polyline) 및 출발/도착 마커 렌더링
      */
     function drawRoutePolyline(route, fitBounds = true) {
       routeLayerGroup.clearLayers();
 
-      // 외곽선 폴리라인 (고속도로 입체감 부여)
+      // 외곽선 폴리라인
       L.polyline(route.polyline, {
-        color: '#1e293b',
+        color: '#0f172a',
         weight: 10,
         opacity: 0.35,
         lineCap: 'round',
@@ -1037,71 +1451,70 @@
         lineJoin: 'round'
       }).addTo(routeLayerGroup);
 
-      // 주행 방향을 나타내는 중앙 점선 효과
+      // 중앙 주행 점선
       L.polyline(route.polyline, {
         color: '#ffffff',
         weight: 2,
-        opacity: 0.7,
+        opacity: 0.75,
         dashArray: '6, 12',
         lineCap: 'round'
       }).addTo(routeLayerGroup);
 
-      // 출발 톨게이트 마커
+      // 출발지 마커
       const startIcon = L.divIcon({
         className: 'custom-terminal-icon',
         html: `
           <div class="px-2.5 py-1 rounded-full bg-slate-900 text-white text-[11px] font-extrabold shadow-lg border-2 border-white flex items-center gap-1 whitespace-nowrap -translate-x-1/2 -translate-y-1/2">
             <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
-            출발: ${route.startName.split(' ')[0]}
+            출발: ${route.startName}
           </div>
         `,
         iconSize: [0, 0]
       });
-      L.marker(route.startCoord, { icon: startIcon, zIndexOffset: -100 }).addTo(routeLayerGroup);
+      L.marker(route.startCoord, { icon: startIcon, zIndexOffset: 900 }).addTo(routeLayerGroup);
 
-      // 도착 톨게이트 마커
+      // 도착지 마커
       const endIcon = L.divIcon({
         className: 'custom-terminal-icon',
         html: `
           <div class="px-2.5 py-1 rounded-full bg-rose-600 text-white text-[11px] font-extrabold shadow-lg border-2 border-white flex items-center gap-1 whitespace-nowrap -translate-x-1/2 -translate-y-1/2">
             <span class="w-2 h-2 rounded-full bg-white"></span>
-            도착: ${route.endName.split(' ')[0]}
+            도착: ${route.endName}
           </div>
         `,
         iconSize: [0, 0]
       });
-      L.marker(route.endCoord, { icon: endIcon, zIndexOffset: -100 }).addTo(routeLayerGroup);
+      L.marker(route.endCoord, { icon: endIcon, zIndexOffset: 900 }).addTo(routeLayerGroup);
 
-      if (fitBounds) {
+      if (fitBounds && route.polyline.length > 0) {
         const isMobile = window.innerWidth < 768;
         map.fitBounds(mainPolyline.getBounds(), {
-          paddingTopLeft: [30, 60],
-          paddingBottomRight: isMobile ? [30, window.innerHeight * 0.52] : [40, 40]
+          paddingTopLeft: [40, 70],
+          paddingBottomRight: isMobile ? [40, window.innerHeight * 0.54] : [50, 50]
         });
       }
     }
 
     /**
-     * 9. 화면(요약 배너, 타임라인 카드, 지도 마커) 통합 업데이트
+     * 15. 화면 통합 업데이트
      */
     function updateView() {
-      const route = HIGHWAY_ROUTES[currentRouteId];
       const filteredStops = getFilteredStops();
 
-      renderSummaryBanner(route, filteredStops);
-      renderTimelineCards(route, filteredStops);
-      renderMapMarkers(route, filteredStops);
+      renderSummaryBanner(activeRouteData, filteredStops);
+      renderTimelineCards(activeRouteData, filteredStops);
+      renderMapMarkers(activeRouteData, filteredStops);
 
       document.getElementById('filteredCountBadge').textContent =
         activeFilters.size > 0 || searchQuery.trim()
-          ? `조건 일치 ${filteredStops.length}곳 / 전체 ${route.stops.length}곳`
-          : `경유 휴게소 총 ${route.stops.length}곳`;
+          ? `조건 일치 ${filteredStops.length}곳 / 전체 ${activeRouteData.matchedStops.length}곳`
+          : `경로 상 휴게소 총 ${activeRouteData.matchedStops.length}곳`;
 
       lucide.createIcons();
     }
 
     /**
-     * 10. 편의시설 필터 칩 렌더링
+     * 16. 편의시설 필터 칩 렌더링
      */
     function renderFilterChips() {
       const container = document.getElementById('filterChipsContainer');
@@ -1115,6 +1528,7 @@
 
         return `
           <button
+            type="button"
             onclick="toggleFilter('${filter.id}')"
             class="flex-shrink-0 px-2.5 py-1.5 rounded-full text-xs font-semibold border transition-all flex items-center gap-1.5 ${activeClass}"
           >
@@ -1126,29 +1540,28 @@
     }
 
     /**
-     * 11. 경로 요약 배너 렌더링
+     * 17. 경로 요약 배너 렌더링
      */
     function renderSummaryBanner(route, filteredStops) {
       const banner = document.getElementById('routeSummaryBanner');
-      // 최저 휘발유 가격 계산
       const lowestGas = filteredStops.length > 0
         ? Math.min(...filteredStops.map(s => s.gasPrice.gasoline))
         : null;
 
       banner.innerHTML = `
-        <div class="flex items-center gap-3">
-          <div class="flex items-center gap-1.5">
+        <div class="flex items-center gap-2.5">
+          <div class="flex items-center gap-1">
             <i data-lucide="compass" class="w-3.5 h-3.5 text-blue-400"></i>
             <span class="text-slate-300">총 거리</span>
             <strong class="text-white font-bold">${route.totalDistanceKm}km</strong>
           </div>
           <span class="text-slate-600">|</span>
-          <div class="flex items-center gap-1.5">
+          <div class="flex items-center gap-1">
             <i data-lucide="clock" class="w-3.5 h-3.5 text-emerald-400"></i>
             <strong class="text-white font-bold">${route.estTimeText}</strong>
           </div>
         </div>
-        <div class="flex items-center gap-2">
+        <div class="flex items-center gap-1.5">
           ${lowestGas ? `
             <span class="px-2 py-0.5 rounded bg-amber-500/20 border border-amber-400/30 text-amber-300 font-semibold text-[11px]">
               최저 휘발유 ${lowestGas.toLocaleString()}원
@@ -1162,7 +1575,7 @@
     }
 
     /**
-     * 12. 주행 순서 타임라인 카드 렌더링
+     * 18. 주행 순서 타임라인 카드 렌더링
      */
     function renderTimelineCards(route, filteredStops) {
       const container = document.getElementById('timelineContainer');
@@ -1173,10 +1586,10 @@
             <div class="w-12 h-12 rounded-2xl bg-slate-200/80 text-slate-500 flex items-center justify-center mx-auto mb-3">
               <i data-lucide="search-x" class="w-6 h-6"></i>
             </div>
-            <p class="text-sm font-bold text-slate-700">조건에 맞는 휴게소가 없습니다</p>
-            <p class="text-xs text-slate-500 mt-1">선택한 편의시설 필터나 검색어를 초기화해 보세요.</p>
+            <p class="text-sm font-bold text-slate-700">경로 상 조건에 맞는 휴게소가 없습니다</p>
+            <p class="text-xs text-slate-500 mt-1">편의시설 필터를 해제하거나 위 추천 구간(부산→서울 등)을 선택해 보세요.</p>
             <button onclick="resetFilters()" class="mt-4 px-4 py-2 bg-blue-600 text-white text-xs font-bold rounded-xl shadow-sm hover:bg-blue-700 transition-colors">
-              필터 전체 초기화
+              필터 초기화
             </button>
           </div>
         `;
@@ -1199,21 +1612,18 @@
         </div>
       `;
 
-      // 각 휴게소 타임라인 아이템 생성
       filteredStops.forEach((stop, index) => {
         const prevKm = index === 0 ? 0 : filteredStops[index - 1].kmFromStart;
-        const segmentKm = stop.kmFromStart - prevKm;
-        const segmentMin = Math.max(5, Math.round((segmentKm / 95) * 60)); // 시속 약 95km 기준 소요 분 계산
+        const segmentKm = Math.max(1, stop.kmFromStart - prevKm);
+        const segmentMin = Math.max(3, Math.round((segmentKm / 95) * 60));
         const isSelected = selectedStopId === stop.id;
 
-        // 혼잡도 배지 색상
         const statusColor = stop.status === '원활'
           ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
           : stop.status === '보통'
           ? 'bg-blue-50 text-blue-700 border-blue-200'
           : 'bg-amber-50 text-amber-700 border-amber-200';
 
-        // 편의시설 태그 HTML
         const facilityTagsHtml = stop.facilities.map(fKey => {
           const meta = FACILITY_BADGE_MAP[fKey];
           if (!meta) return '';
@@ -1226,7 +1636,7 @@
         }).join('');
 
         html += `
-          <!-- 이전 지점과의 구간 거리/시간 표시선 -->
+          <!-- 구간 거리/시간 표시선 -->
           <div class="relative pl-4 py-1 flex items-center">
             <div class="absolute left-[17px] top-0 bottom-0 w-0.5 bg-gradient-to-b from-blue-300 to-blue-500"></div>
             <div class="ml-5 px-2.5 py-0.5 rounded-full bg-blue-50/90 border border-blue-200/80 text-[11px] font-semibold text-blue-700 flex items-center gap-1.5">
@@ -1241,7 +1651,6 @@
             onclick="selectRestStop('${stop.id}')"
             class="relative flex items-start gap-3 group cursor-pointer"
           >
-            <!-- 타임라인 수직 연결선 -->
             <div class="absolute left-[17px] top-0 bottom-0 w-0.5 bg-slate-200 group-last:hidden"></div>
 
             <!-- 주행 순서 번호 배지 -->
@@ -1259,10 +1668,10 @@
                 ? 'bg-blue-50/50 border-blue-500 ring-2 ring-blue-500/20 shadow-md'
                 : 'bg-white border-slate-200/90 hover:border-blue-300 hover:shadow-md'
             }">
-              <!-- 상단: 휴게소명 + 누적거리/혼잡도 -->
               <div class="flex items-start justify-between gap-2 mb-1.5">
                 <div>
                   <div class="flex items-center gap-1.5 flex-wrap">
+                    <span class="text-[10px] font-bold px-1.5 py-0.5 bg-slate-100 text-slate-600 rounded">${stop.highway}</span>
                     <h3 class="font-bold text-sm text-slate-900 group-hover:text-blue-600 transition-colors">
                       ${stop.name}
                     </h3>
@@ -1282,9 +1691,8 @@
                 </div>
               </div>
 
-              <!-- 중단: 대표 먹거리 & 유가 정보 박스 -->
+              <!-- 대표 먹거리 & 유가 정보 박스 -->
               <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 my-2.5 p-2.5 rounded-xl bg-slate-50 border border-slate-200/70">
-                <!-- 대표 먹거리 -->
                 <div class="flex items-start gap-2">
                   <div class="w-7 h-7 rounded-lg bg-rose-100 text-rose-600 flex items-center justify-center flex-shrink-0 mt-0.5">
                     <i data-lucide="utensils" class="w-3.5 h-3.5"></i>
@@ -1301,7 +1709,6 @@
                   </div>
                 </div>
 
-                <!-- 주유소 가격 정보 -->
                 <div class="flex items-start gap-2 sm:border-l sm:border-slate-200 sm:pl-2.5 pt-1.5 sm:pt-0 border-t border-slate-200/60 sm:border-t-0">
                   <div class="w-7 h-7 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center flex-shrink-0 mt-0.5">
                     <i data-lucide="fuel" class="w-3.5 h-3.5"></i>
@@ -1318,7 +1725,7 @@
                 </div>
               </div>
 
-              <!-- 하단: 보유 편의시설 태그 -->
+              <!-- 보유 편의시설 태그 -->
               <div class="flex items-center flex-wrap gap-1">
                 ${facilityTagsHtml}
               </div>
@@ -1327,14 +1734,13 @@
         `;
       });
 
-      // 도착지 카드 푸터
       const lastKm = filteredStops[filteredStops.length - 1].kmFromStart;
-      const remainKm = Math.max(0, route.totalDistanceKm - lastKm);
+      const remainKm = Math.max(1, route.totalDistanceKm - lastKm);
       html += `
         <div class="relative pl-4 py-1 flex items-center">
           <div class="absolute left-[17px] top-0 bottom-0 w-0.5 bg-slate-300"></div>
           <div class="ml-5 text-[11px] font-medium text-slate-500">
-            종점까지 잔여 +${remainKm}km
+            도착지까지 잔여 +${remainKm}km
           </div>
         </div>
         <div class="flex items-center gap-3 pt-1 pl-1 pb-4">
@@ -1355,7 +1761,8 @@
     }
 
     /**
-     * 13. 지도 커스텀 마커 및 팝업 렌더링
+     * 19. 지도 커스텀 마커 및 팝업 렌더링
+     * - 겹침 방지를 위해 평상시에는 깔끔한 숫자 배지만 표시하고, 마우스 호버 시 또는 선택 시에만 휴게소 이름 라벨이 표시되도록 개선
      */
     function renderMapMarkers(route, filteredStops) {
       markersLayerGroup.clearLayers();
@@ -1363,31 +1770,30 @@
 
       filteredStops.forEach(stop => {
         const isSelected = selectedStopId === stop.id;
-        const shortName = stop.name.replace(/\s*\(.*?\)/g, ''); // 괄호 방향 텍스트 제거한 깔끔한 라벨
+        const shortName = stop.name.replace(/\s*\(.*?\)/g, '');
 
-        // 주행 순서 번호와 휴게소 이름이 함께 보이는 커스텀 HTML 마커
         const customIcon = L.divIcon({
           className: 'custom-rest-stop-marker',
           html: `
             <div class="relative flex flex-col items-center group cursor-pointer -translate-x-1/2 -translate-y-1/2">
-              <!-- 상단 말풍선 라벨 -->
-              <div class="mb-1 px-2 py-0.5 rounded-full text-[11px] font-extrabold whitespace-nowrap shadow-md border transition-all ${
+              <!-- 상단 말풍선 라벨: 선택되었거나 마우스 호버 시에만 노출하여 마커 겹침 완벽 방지 -->
+              <div class="${
                 isSelected
-                  ? 'bg-blue-600 text-white border-white scale-110 z-30'
-                  : 'bg-white/95 text-slate-800 border-slate-300 group-hover:bg-blue-600 group-hover:text-white group-hover:border-white'
-              }">
-                <span class="opacity-80 mr-0.5">#${stop.driveOrder}</span> ${shortName}
+                  ? 'opacity-100 scale-105 bg-blue-600 text-white border-white z-30'
+                  : 'opacity-0 pointer-events-none group-hover:opacity-100 bg-slate-900/95 text-white border-white/80'
+              } absolute bottom-9 px-2.5 py-0.5 rounded-full text-[11px] font-extrabold whitespace-nowrap shadow-md border transition-all duration-150">
+                #${stop.driveOrder} ${shortName}
               </div>
               <!-- 원형 번호 핀 -->
-              <div class="relative w-8 h-8 rounded-full flex items-center justify-center font-extrabold text-xs shadow-lg border-2 border-white transition-transform ${
-                isSelected ? 'bg-blue-600 text-white scale-125 marker-pulse' : 'bg-slate-900 text-white group-hover:scale-110'
+              <div class="relative w-7 h-7 rounded-full flex items-center justify-center font-extrabold text-xs shadow-lg border-2 border-white transition-transform ${
+                isSelected ? 'bg-blue-600 text-white scale-125 marker-pulse' : 'text-white group-hover:scale-110'
               }" style="background-color: ${isSelected ? '#2563eb' : route.themeColor}">
                 ${stop.driveOrder}
               </div>
             </div>
           `,
           iconSize: [0, 0],
-          popupAnchor: [0, -28]
+          popupAnchor: [0, -20]
         });
 
         const marker = L.marker([stop.lat, stop.lng], {
@@ -1395,7 +1801,6 @@
           zIndexOffset: isSelected ? 1000 : stop.driveOrder * 10
         });
 
-        // 마커 팝업 컨텐츠 구성
         const facilityPills = stop.facilities.map(fKey => {
           const meta = FACILITY_BADGE_MAP[fKey];
           return meta
@@ -1405,20 +1810,17 @@
 
         const popupHtml = `
           <div class="overflow-hidden bg-white text-slate-800">
-            <!-- 팝업 헤더 -->
             <div class="p-3.5 text-white" style="background: linear-gradient(135deg, ${route.themeColor}, #1e293b)">
               <div class="flex items-center gap-1.5 text-[11px] font-bold text-blue-200 mb-0.5">
                 <span class="px-1.5 py-0.2 bg-white/20 rounded text-white">주행 #${stop.driveOrder}번째</span>
                 <span>•</span>
-                <span>출발지로부터 ${stop.kmFromStart}km</span>
+                <span>${stop.highway} (출발 후 ${stop.kmFromStart}km)</span>
               </div>
               <h4 class="font-extrabold text-base leading-snug pr-6">${stop.name}</h4>
               <p class="text-[11px] text-slate-200 mt-1">${stop.highlight}</p>
             </div>
 
-            <!-- 팝업 바디 -->
             <div class="p-3.5 space-y-2.5 text-xs">
-              <!-- 대표 메뉴 -->
               <div class="p-2.5 rounded-xl bg-rose-50/70 border border-rose-100">
                 <div class="flex items-center justify-between mb-0.5">
                   <span class="text-[10px] font-extrabold text-rose-600 uppercase tracking-wider">🍴 대표 명물 먹거리</span>
@@ -1428,7 +1830,6 @@
                 <p class="text-[11px] text-slate-500 mt-0.5">추천 간식: ${stop.subFoods.join(', ')}</p>
               </div>
 
-              <!-- 주유소 가격 -->
               <div class="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 border border-slate-200/80">
                 <div>
                   <span class="text-[10px] font-bold text-amber-700 block">${stop.gasPrice.brand}</span>
@@ -1440,7 +1841,6 @@
                 </div>
               </div>
 
-              <!-- 편의시설 태그 -->
               <div class="flex flex-wrap gap-1 pt-0.5">
                 ${facilityPills}
               </div>
@@ -1464,42 +1864,36 @@
     }
 
     /**
-     * 14. 특정 휴게소 카드 또는 마커 선택 시 인터랙션
+     * 20. 휴게소 선택 시 지도 이동 및 팝업 오픈
      */
     function selectRestStop(stopId, flyToMarker = true) {
       selectedStopId = stopId;
-      const route = HIGHWAY_ROUTES[currentRouteId];
-      const stop = route.stops.find(s => s.id === stopId);
+      const stop = activeRouteData.matchedStops.find(s => s.id === stopId);
       if (!stop) return;
 
-      // 타임라인 및 마커 선택 스타일 업데이트
       const filteredStops = getFilteredStops();
-      renderTimelineCards(route, filteredStops);
-      renderMapMarkers(route, filteredStops);
+      renderTimelineCards(activeRouteData, filteredStops);
+      renderMapMarkers(activeRouteData, filteredStops);
       lucide.createIcons();
 
-      // 타임라인 카드로 부드럽게 스크롤
       const cardEl = document.getElementById(`stop-card-${stopId}`);
       if (cardEl) {
         cardEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
       }
 
-      // 모바일에서 전체화면 시트 상태였다면 지도가 보이도록 반으로 줄임
       if (window.innerWidth < 768 && mobileSheetState === 'full') {
         setMobileSheetState('half');
       }
 
-      // 지도 이동 및 팝업 오픈
       const marker = markerInstances[stopId];
       if (marker) {
         if (flyToMarker) {
-          // 모바일에서는 바텀시트 높이를 고려하여 중심점 오프셋 보정
           const isMobile = window.innerWidth < 768;
           const targetZoom = Math.max(map.getZoom(), 11);
           const targetLat = isMobile ? stop.lat - 0.08 : stop.lat;
           map.flyTo([targetLat, stop.lng], targetZoom, {
             animate: true,
-            duration: 0.9
+            duration: 0.85
           });
         }
         setTimeout(() => {
@@ -1509,7 +1903,7 @@
     }
 
     /**
-     * 15. 이전 / 다음 휴게소 순차 탐색 버튼 핸들러
+     * 21. 이전 / 다음 휴게소 순차 이동
      */
     function stepRestStop(direction) {
       const filteredStops = getFilteredStops();
@@ -1528,22 +1922,8 @@
     }
 
     /**
-     * 16. 사용자 컨트롤 이벤트 핸들러 모음
+     * 22. 필터 및 검색 컨트롤
      */
-    function handleRouteChange(routeId) {
-      loadRoute(routeId, true);
-    }
-
-    function quickSwapDirection() {
-      if (currentRouteId === 'gyeongbu-up') {
-        loadRoute('gyeongbu-down', true);
-      } else if (currentRouteId === 'gyeongbu-down') {
-        loadRoute('gyeongbu-up', true);
-      } else {
-        loadRoute('gyeongbu-up', true);
-      }
-    }
-
     function toggleFilter(filterId) {
       if (filterId === 'all') {
         activeFilters.clear();
@@ -1585,13 +1965,12 @@
     function resetMapView() {
       selectedStopId = null;
       map.closePopup();
-      const route = HIGHWAY_ROUTES[currentRouteId];
-      drawRoutePolyline(route, true);
+      drawRoutePolyline(activeRouteData, true);
       updateView();
     }
 
     /**
-     * 17. 모바일 반응형 바텀시트 높이 제어
+     * 23. 모바일 바텀시트 높이 제어
      */
     function cycleMobileSheetState() {
       if (mobileSheetState === 'half') {
@@ -1616,7 +1995,7 @@
       const sidebar = document.getElementById('sidebarPanel');
       const btnText = document.getElementById('mobileToggleMapBtnText');
 
-      sidebar.classList.remove('h-[56vh]', 'h-[88vh]', 'h-[15vh]');
+      sidebar.classList.remove('h-[58vh]', 'h-[88vh]', 'h-[15vh]');
 
       if (state === 'full') {
         sidebar.classList.add('h-[88vh]');
@@ -1625,7 +2004,7 @@
         sidebar.classList.add('h-[15vh]');
         btnText.textContent = '휴게소 목록 펼치기';
       } else {
-        sidebar.classList.add('h-[56vh]');
+        sidebar.classList.add('h-[58vh]');
         btnText.textContent = '지도 크게 보기';
       }
 
